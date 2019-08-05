@@ -30,7 +30,6 @@
 
 import app from '../app';
 import debugLib from 'debug';
-import http from 'http';
 import https from 'https'
 import fs from 'fs'
 
@@ -40,22 +39,22 @@ const debug = debugLib('react-backend:server');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '80');
-var host = process.env.HOST || '0.0.0.0';
+const port = normalizePort(process.env.PORT || '80');
+const host = process.env.HOST || '0.0.0.0';
 app.set('port', port);
 
 // Certificate options
-/*var options = {
-  key: fs.readFileSync('./src/ssl/pr_borealis.rci.montana.edu.key'),
+const options = {
+  key: fs.readFileSync('./src/ssl/borealis_rci_montana_edu.key'),
   cert: fs.readFileSync('./src/ssl/borealis_rci_montana_edu.cer'),
-};*/
+};
 
 /**
  * Create HTTPS server.
  */
 
-//var server = https.createServer(options, app);
-var server = http.createServer(app);
+const server = https.createServer(options, app);
+//var server = http.createServer(app);
 
 /**
  * Listen on provided port, on all network interfaces.
