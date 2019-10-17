@@ -24,10 +24,12 @@
 
 import express from 'express'
 import format from 'string-format'
-import {query} from '../util/pg'
+import { query } from '../util/pg'
 import moment from 'moment'
-import {encodeUID} from "../snowflake"
+import { encodeUID, extractIMEI, extractDate } from "../snowflake"
 import Stats from '../stats'
+import json2csv from 'json2csv'
+import KMLEncoder from '../util/kml'
 
 const router = express.Router();
 
@@ -75,7 +77,7 @@ const reformatData = async (data) => {
 
   // Build point-to-point velocities
   for (let i = 0; i < data.length - 1; i++) {
-    const nextPoint = data[i+1];
+    const nextPoint = data[i + 1];
     const thisPoint = data[i];
     const offsetLat = nextPoint.latitude - thisPoint.latitude;
     const offsetLong = nextPoint.longitude - thisPoint.longitude;
@@ -92,29 +94,62 @@ const reformatData = async (data) => {
   return output;
 };
 
+/**
+ * Takes a database result and returns a JSON packet optimized for
+ * transmission to client website
+ * @param data
+ * @returns {Promise<Object>}
+ */
+const jsvFormatter = async (data) => {
+  const stats = await Stats.build(data);
+  const jsv = await reformatData(data);
+  jsv.stats = stats;
+  return jsv;
+};
+
+const csvFormatter = async (data) => {
+  const fields = ['uid', 'datetime', 'latitude', 'longitude', 'altitude', 'vertical_velocity', 'ground_speed', 'satellites'];
+  const opts = { fields };
+
+  return await json2csv.parseAsync(data, opts);
+};
 
 router.get('/', async (req, res, next) => {
   try {
+    let uid = null;
+    // For filenames
+    let imei, date;
     if (exists(req.query.uid)) {
-      let result = await query('SELECT * FROM public."flights" WHERE uid={} AND satellites>={}'.format(req.query.uid, MIN_SATELLITES));
+      uid = req.query.uid;
 
-      const stats = await Stats.build(result);
-      const jsv = await reformatData(result);
-      jsv.stats = stats;
-
-      await res.json(jsv);
-    }
-    else if (exists(req.query.imei) && exists(req.query.date)) {
-      let client = await pgPool.connect();
+      imei = extractIMEI(uid);
+      date = extractDate(uid).format('YYYY-MM-DD');
+    } else if (exists(req.query.imei) && exists(req.query.date)) {
       let start_date = moment(req.query.date, 'YYYY-MM-DD');
-      let uid = encodeUID(start_date,req.query.imei);
-      let result = await client.query('SELECT * FROM public."flights" WHERE uid={} AND satellites>={}'.format(uid, MIN_SATELLITES));
-      await client.release();
+      uid = encodeUID(start_date, req.query.imei);
 
+      imei = req.query.imei;
+      date = req.query.date;
+    }
+    let result = await query('SELECT * FROM public."flights" WHERE uid={} AND satellites>={} ORDER BY datetime ASC'.format(uid, MIN_SATELLITES));
+
+    if (req.query.format === 'csv') {
+      const csv = await csvFormatter(result);
+
+      res.type('csv');
+      res.setHeader('Content-Disposition', `attachment; filename=flight-${imei}-${date}.csv`);
+      res.setHeader('Content-Transfer-Encoding', 'binary');
+      await res.send(csv)
+    } else if (req.query.format === 'kml') {
       const stats = await Stats.build(result);
-      const jsv = await reformatData(result);
-      jsv.stats = stats;
+      const kml = await KMLEncoder.generate(result, stats.max_altitude);
 
+      res.setHeader('Content-Type', `application/kml`);
+      res.setHeader('Content-Disposition', `attachment; filename=flight-${imei}-${date}.kml`);
+      res.setHeader('Content-Transfer-Encoding', 'binary');
+      await res.send(kml);
+    } else {
+      const jsv = await jsvFormatter(result);
       await res.json(jsv);
     }
   } catch (e) {
