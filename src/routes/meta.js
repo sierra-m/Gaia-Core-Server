@@ -72,11 +72,14 @@ router.get('/active', async (req, res, next) => {
         let result = await query('SELECT DISTINCT ON (uid) uid, datetime FROM public."flights" WHERE datetime>=\'{}\' ORDER BY uid ASC, datetime DESC'.format(hoursAgo));
 
         if (result.length > 0) {
+            //console.log(`Active flight tuples: ${result.length}`);
+
             // Order uids into '1, 2, 3' string format
             const point_identifiers = result.map(point => `(${point.uid}, '${point.datetime}')`).join(', ');
 
             // Search for partial points from the list of uids
             result = await query(`SELECT uid, datetime, latitude, longitude, altitude FROM public."flights" WHERE (uid, datetime) in (${point_identifiers}) ORDER BY datetime DESC`);
+            //console.log(`Full active flights: ${result.length}`);
             await res.json({
                 status: 'active',
                 points: result

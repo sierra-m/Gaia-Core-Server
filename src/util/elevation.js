@@ -26,6 +26,7 @@ import {GOOGLE_MAPS_KEY} from '../apiKeys'
 
 const fiveHours = 5 * 60 * 60;
 const cacheSize = 100;
+import fetch from 'node-fetch'
 
 /**
  * A simple wrapper around the Google elevation API that
@@ -42,17 +43,18 @@ const cacheSize = 100;
 export default class ElevationAPI {
   cache = [];
 
-  request (latitude, longitude) {
+  async request (latitude, longitude) {
     // Check for coords in cache
-    for (let packet of cache) {
+    for (let packet of this.cache) {
       if (packet.coord === [latitude, longitude]) {
         return packet.elv;
       }
     }
 
     // Fetch new elevation
-    const res = fetch(`https://maps.googleapis.com/maps/api/elevation/json?locations=${latitude},${longitude}&key=${GOOGLE_MAPS_KEY}`);
-    const data = res.json();
+    const res = await fetch(`https://maps.googleapis.com/maps/api/elevation/json?locations=${latitude},${longitude}&key=${GOOGLE_MAPS_KEY}`);
+    //console.log(`Elevation API res comes in as ${res}`);
+    const data = await res.json();
     if (data.results.length > 0) {
       const newPacket = {
         coord: [latitude, longitude],

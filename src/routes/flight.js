@@ -119,13 +119,13 @@ router.get('/', async (req, res, next) => {
     let uid = null;
     // For filenames
     let imei, date;
-    if (exists(req.query.uid)) {
+    if (req.query.uid) {
       uid = req.query.uid;
 
       imei = extractIMEI(uid);
       date = extractDate(uid).format('YYYY-MM-DD');
-    } else if (exists(req.query.imei) && exists(req.query.date)) {
-      let start_date = moment(req.query.date, 'YYYY-MM-DD');
+    } else if (req.query.imei && req.query.date) {
+      let start_date = moment.utc(req.query.date, 'YYYY-MM-DD');
       uid = encodeUID(start_date, req.query.imei);
 
       imei = req.query.imei;

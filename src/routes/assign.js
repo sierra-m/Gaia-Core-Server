@@ -43,25 +43,28 @@ const insertPoint = async (flightPoint, uid) => {
   '').format(flightPoint));
 };
 
+/**
+ * todo: redo this file entirely.
+ */
 
 router.post('/', async (req, res) => {
   if ('point' in req.body) {
 
+    //console.log('New point from Iris.');
     const flightPoint = new FlightPoint(req.body.point);
 
     req.pinStates.add(flightPoint.imei, flightPoint.input_pins, flightPoint.output_pins);
 
     /**
-     * Why am I adding 6 hours here? Because for some reason the call
-     * `flightPoint.datetime.clone().startOf('day')` results in a local time
-     * object and I can't reproduce this in testing. It's a true mystery.
-     * Adding 6 hours to achieve UTC is the ugly fix :P
+     * No longer adding 6 hours here. Made data correct.
      */
-    const pointUID = encodeUID(flightPoint.datetime.clone().startOf('day').add(6, 'hours'), flightPoint.imei);
+    const pointUID = encodeUID(flightPoint.datetime.clone().startOf('day'), flightPoint.imei);
+    //console.log(`IMEI ${flightPoint.imei} reached pointUID.`);
 
     let result = await query(`SELECT * FROM public."flight-registry" WHERE uid=${pointUID}`);
 
     if (result.length > 0) {
+      //console.log(`IMEI ${flightPoint.imei} has a uid from today.`);
       try {
         await insertPoint(flightPoint, pointUID);
         await res.json({
@@ -78,14 +81,19 @@ router.post('/', async (req, res) => {
         console.log('Today error');
       }
     } else {
+      //console.log(`IMEI ${flightPoint.imei} does NOT have a uid from today.`);
+
       const hoursAgo = moment.utc().subtract(2, 'hours').format('YYYY-MM-DD HH:mm:ss');
       let result = await query(`SELECT * FROM public."flights" WHERE datetime>='${hoursAgo}'`);
 
       const pointIMEI = flightPoint.imei.toString();
 
+      //console.log(`IMEI ${flightPoint.imei} "recent" query successful.`);
       if (result.length > 0) {
         let foundImei = result.find(point => extractIMEI(point.uid) === pointIMEI);
+        //console.log(`IMEI ${flightPoint.imei} run under imei Find.`);
         if (foundImei) {
+          //console.log(`IMEI ${flightPoint.imei} has a recent uid.`);
           const flightUID = foundImei.uid;
           try {
             await insertPoint(flightPoint, flightUID);
@@ -94,6 +102,8 @@ router.post('/', async (req, res) => {
               type: 'recent',
               flight: Number(flightUID)
             });
+
+            return;  // Explicit return to avoid flight creation
           } catch (e) {
             await res.json({
               status: 'error',
@@ -101,25 +111,28 @@ router.post('/', async (req, res) => {
             });
             console.log(e);
             console.log('Recent error');
+
+            return;  // Explicit return to avoid flight creation
           }
         }
-      } else {
-        try {
-          await query(`INSERT INTO public."flight-registry" (uid, start_date, imei) VALUES (${pointUID}, '${flightPoint.datetime.format('YYYY-MM-DD')}', ${flightPoint.imei})`);
-          await insertPoint(flightPoint, pointUID);
-          await res.json({
-            status: 'success',
-            type: 'created',
-            flight: Number(pointUID)
-          });
-        } catch (e) {
-          await res.json({
-            status: 'error',
-            data: e.toString()
-          });
-          console.log(e);
-          console.log('Created error');
-        }
+        // Recent not found for point. Program flow continues to create
+      }
+      console.log(`IMEI ${flightPoint.imei} new flight creation.`);
+      try {
+        await query(`INSERT INTO public."flight-registry" (uid, start_date, imei) VALUES (${pointUID}, '${flightPoint.datetime.format('YYYY-MM-DD')}', ${flightPoint.imei})`);
+        await insertPoint(flightPoint, pointUID);
+        await res.json({
+          status: 'success',
+          type: 'created',
+          flight: Number(pointUID)
+        });
+      } catch (e) {
+        await res.json({
+          status: 'error',
+          data: e.toString()
+        });
+        console.log(e);
+        console.log('Created error');
       }
     }
   } else {

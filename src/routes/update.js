@@ -35,21 +35,55 @@ format.extend(String.prototype, {});
 
 const elevationAPI = new ElevationAPI();
 
+/**
+ * Aurora client update method
+ * ===========================
+ * Motivation: The client needs a way to request
+ * new data points from the server to stay up-to-date.
+ *
+ * Process: Client posts to `/update` endpoint with
+ * the most recent uid and datetime it has. Server
+ * selects any data points later than this and
+ * sends them back via json as a list. Server also
+ * attaches current pin states and queries Google
+ * elevation API for elevation of most recent point
+ * if < 3000m.
+ *
+ * Request
+ * -------
+ * POST :: JSON {
+ *   "uid": {{ number }},
+ *   "datetime": {{ number }}  // Unix
+ * }
+ *
+ * Response
+ * --------
+ * JSON {
+ *   "update": {{ bool }},  // indicates success
+ *   "result": {{ list[FlightPoint] }},
+ *   "pin_states": {{ PinState }},
+ *   "ground_elevation": {{ number }}
+ * }
+ */
 router.post('/', async (req, res, next) => {
   try {
     if ('uid' in req.body && 'datetime' in req.body) {
       let uid = req.body.uid;
+      // Convert Unix to String
       let lastTime = moment.utc(req.body.datetime, 'X').format('YYYY-MM-DD HH:mm:ss');
 
       let result = await query(`SELECT * FROM public."flights" WHERE uid=${uid} AND datetime>'${lastTime}'`);
       //console.log(`uid: ${uid} time: ${lastTime} result: ${result}`);
 
+      // Convert timestamps from String to Unix
       for (let row of result) {
         row.datetime = moment.utc(row.datetime, 'YYYY-MM-DD HH:mm:ss').unix();
       }
 
+      // Get current pin states, if any
       let pins = req.pinStates.get(extractIMEI(uid));
 
+      // Create partial return packet
       let content = {
         update: result.length > 0,
         result: result,
@@ -57,12 +91,17 @@ router.post('/', async (req, res, next) => {
       };
 
       //console.log(`Pin states: ${JSON.stringify(req.pinStates)}`);
-      if (result.length > 0) {
-        const point = result[result.length -1];
-        if (point.altitude < 3000 && point.vertical_velocity < 0) {
-          content.ground_elevation = elevationAPI.request(point.latitude, point.longitude);
+      try {
+        if (result.length > 0) {
+          const point = result[result.length - 1];
+          if (point.altitude < 3000 && point.vertical_velocity < 0) {
+            content.ground_elevation = await elevationAPI.request(point.latitude, point.longitude);
+          }
         }
+      } catch (e) {
+        console.log(`Update endpoint error: ${e}`)
       }
+
       await res.json(content)
     } else {
       res.sendStatus(400)
