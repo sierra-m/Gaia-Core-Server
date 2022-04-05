@@ -22,6 +22,7 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
+// Size limit built in to prevent ever-expanding object in bug scenario
 const maxIMEIs = 100;
 
 /**
