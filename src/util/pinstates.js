@@ -22,24 +22,28 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
-const maxIMEIs = 10;
+const maxIMEIs = 100;
 
 /**
  * Stores the recent pin states for up to `maxIMEIs` imeis
  */
 export default class PinStates {
-  imeis = [];
-  log = {};
+  imeis = []; // For order and size tracking
+  log = {};  // Parallel obj for storing actual data
 
   add (imei, input, output) {
     this.log[imei] = {
       input_pins: input,
       output_pins: output
     };
-    this.imeis.push(imei);
-    if (this.imeis.length > maxIMEIs) {
-      delete this.log[this.imeis[0]];
-      this.imeis.shift();
+    if (!this.imeis.includes(imei)) {
+      this.imeis.push(imei);  // Add new imei to end of queue
+
+      // Check exceeding log length
+      if (this.imeis.length > maxIMEIs) {
+        delete this.log[this.imeis[0]];  // Delete log entry defined by first imei in queue
+        this.imeis.shift();  // Delete first imei in queue
+      }
     }
   }
 
