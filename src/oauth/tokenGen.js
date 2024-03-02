@@ -50,7 +50,10 @@ const main =  async () => {
   const size = await tokenSize();
   const token = (new TokenGenerator(size, TokenGenerator.BASE62)).generate();
   console.log(`Token ${token} generated for client ${client}.`);
-  const result = await query(`INSERT INTO public."auth" (client, token) VALUES ('${client}','${token}')`);
+  const result = await query(
+      `INSERT INTO public."auth" (client, token) VALUES ($1, $2)`,
+      [client, token]
+  );
 };
 
 main();
