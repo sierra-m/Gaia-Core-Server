@@ -45,17 +45,7 @@ const app = express();
 // For security
 app.use(helmet());
 
-app.use(redirectToHTTPS());
-
-/*app.use (async (req, res, next) => {
-  if (req.secure) {
-    // request was via https, so do no special handling
-    next();
-  } else {
-    // request was via http, so redirect to https
-    res.redirect('https://' + req.headers.host + req.url);
-  }
-});*/
+//app.use(redirectToHTTPS());
 
 const useProduction = process.env.NODE_ENV === 'production';
 
@@ -68,10 +58,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/googleb959e89f58d156a2.html', async (req, res) => {
-  res.sendFile(path.join(__dirname, 'res', 'googleb959e89f58d156a2.html'))
-});
 
 /**
  * Checks whether request contains a valid API key param
