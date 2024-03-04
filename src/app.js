@@ -105,13 +105,13 @@ app.use('/last', authRouter, lastRouter);
 * Production build intended to run aurora from directory adjacent
 */
 if (useProduction) {
-  app.use(express.static(path.join(__dirname, '/../Aurora-React/build')));
+  app.use(express.static(path.join(__dirname, '/../../Aurora-React/build')));
   app.use(['/tracking', '/404'], async (req, res) => {
-    res.sendFile(path.join(__dirname, '/../Aurora-React/build', 'index.html'));
+    res.sendFile(path.join(__dirname, '/../../Aurora-React/build', 'index.html'));
   });
   app.use('/', function(req, res, next) {
     if (parseUrl.original(req).pathname !== req.baseUrl) return next(); // skip this for strictness
-    res.sendFile(path.join(__dirname, '/../Aurora-React/build', 'index.html'));
+    res.sendFile(path.join(__dirname, '/../../Aurora-React/build', 'index.html'));
   });
 }
 
