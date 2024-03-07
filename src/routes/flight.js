@@ -131,7 +131,10 @@ router.get('/', async (req, res, next) => {
       imei = req.query.imei;
       date = req.query.date;
     }
-    let result = await query('SELECT * FROM public."flights" WHERE uid={} AND satellites>={} ORDER BY datetime ASC'.format(uid, MIN_SATELLITES));
+    let result = await query(
+        'SELECT * FROM public."flights" WHERE uid=$1 AND satellites>=$2 ORDER BY datetime ASC',
+        [uid, MIN_SATELLITES]
+    );
 
     if (req.query.format === 'csv') {
       const csv = await csvFormatter(result);

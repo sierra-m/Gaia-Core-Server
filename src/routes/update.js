@@ -72,7 +72,10 @@ router.post('/', async (req, res, next) => {
       // Convert Unix to String
       let lastTime = moment.utc(req.body.datetime, 'X').format('YYYY-MM-DD HH:mm:ss');
 
-      let result = await query(`SELECT * FROM public."flights" WHERE uid=${uid} AND datetime>'${lastTime}'`);
+      let result = await query(
+          `SELECT * FROM public."flights" WHERE uid=$1 AND datetime>$2`,
+          [uid, lastTime]
+          );
       //console.log(`uid: ${uid} time: ${lastTime} result: ${result}`);
 
       // Convert timestamps from String to Unix

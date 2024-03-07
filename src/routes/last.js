@@ -35,7 +35,10 @@ router.get('/', async (req, res, next) => {
   if ('imei' in req.query) {
     const hoursAgo = moment.utc().subtract(2, 'hours').format('YYYY-MM-DD HH:mm:ss');
     const partial = req.query.imei.toString().substring(8);
-    const result = await query(`SELECT * FROM public."flight-registry" WHERE (uid::bit(64) & x'0000000007ffffff')::bigint=${partial}::bigint, datetime>'${hoursAgo}' ORDER BY datetime DESC`);
+    const result = await query(
+        `SELECT * FROM public."flight-registry" WHERE (uid::bit(64) & x'0000000007ffffff')::bigint=$1::bigint, datetime>$2 ORDER BY datetime DESC`,
+        [partial, hoursAgo]
+    );
     if (result.length > 0) {
       res.json(result[0]);
     } else {

@@ -38,9 +38,20 @@ const insertPoint = async (flightPoint, uid) => {
   flightPoint.uid = uid;
   flightPoint.datetime = flightPoint.datetime.format('YYYY-MM-DD HH:mm:ss');
   //console.log(`DATABASE INSERT: ${flightPoint.datetime}`);
-  return await query(('INSERT INTO public."flights" (uid, datetime, latitude, longitude, altitude, vertical_velocity, ground_speed, satellites) ' +
-  "VALUES ({uid}, '{datetime}', {latitude}, {longitude}, {altitude}, {vertical_velocity}, {ground_speed}, {satellites})" +
-  '').format(flightPoint));
+  return await query(
+      ('INSERT INTO public."flights" (uid, datetime, latitude, longitude, altitude, vertical_velocity, ground_speed, satellites) ' +
+       "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"),
+      [
+          flightPoint.uid,
+          flightPoint.datetime,
+          flightPoint.latitude,
+          flightPoint.longitude,
+          flightPoint.altitude,
+          flightPoint.vertical_velocity,
+          flightPoint.ground_speed,
+          flightPoint.satellites
+      ]
+  );
 };
 
 /**
@@ -61,7 +72,7 @@ router.post('/', async (req, res) => {
     const pointUID = encodeUID(flightPoint.datetime.clone().startOf('day'), flightPoint.imei);
     //console.log(`IMEI ${flightPoint.imei} reached pointUID.`);
 
-    let result = await query(`SELECT * FROM public."flight-registry" WHERE uid=${pointUID}`);
+    let result = await query(`SELECT * FROM public."flight-registry" WHERE uid=$1`, [pointUID]);
 
     if (result.length > 0) {
       //console.log(`IMEI ${flightPoint.imei} has a uid from today.`);
@@ -84,7 +95,7 @@ router.post('/', async (req, res) => {
       //console.log(`IMEI ${flightPoint.imei} does NOT have a uid from today.`);
 
       const hoursAgo = moment.utc().subtract(2, 'hours').format('YYYY-MM-DD HH:mm:ss');
-      let result = await query(`SELECT * FROM public."flights" WHERE datetime>='${hoursAgo}'`);
+      let result = await query(`SELECT * FROM public."flights" WHERE datetime>=$1`, [hoursAgo]);
 
       const pointIMEI = flightPoint.imei.toString();
 
@@ -119,7 +130,10 @@ router.post('/', async (req, res) => {
       }
       console.log(`IMEI ${flightPoint.imei} new flight creation.`);
       try {
-        await query(`INSERT INTO public."flight-registry" (uid, start_date, imei) VALUES (${pointUID}, '${flightPoint.datetime.format('YYYY-MM-DD')}', ${flightPoint.imei})`);
+        await query(
+            `INSERT INTO public."flight-registry" (uid, start_date, imei) VALUES ($1, $2, $3)`,
+            [pointUID, flightPoint.datetime.format('YYYY-MM-DD'), flightPoint.imei]
+        );
         await insertPoint(flightPoint, pointUID);
         await res.json({
           status: 'success',
