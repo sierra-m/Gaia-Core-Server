@@ -34,7 +34,10 @@ format.extend(String.prototype, {});
 
 router.get('/imeis', async (req, res, next) => {
     try {
-        const result = await query('SELECT DISTINCT imei FROM public."flight-registry"');
+        const result = await query(
+            'SELECT DISTINCT imei FROM public."flight-registry"',
+            []
+        );
 
         const imeis = result.map(x => x.imei);
         await res.json(imeis);
@@ -47,7 +50,10 @@ router.get('/imeis', async (req, res, next) => {
 router.get('/flights', async (req, res, next) => {
     try {
         if (req.query.imei !== null && typeof req.query.imei === 'string') {
-            let result = await query('SELECT * FROM public."flight-registry" WHERE imei={}'.format(req.query.imei));
+            let result = await query(
+                'SELECT * FROM public."flight-registry" WHERE imei=$1',
+                [req.query.imei]
+            );
 
             /*
             * Mapping turns
@@ -69,6 +75,7 @@ router.get('/active', async (req, res, next) => {
         // Construct time delta of 12 hours ago, format for db query
         const hoursAgo = moment.utc().subtract(12, 'hours').format('YYYY-MM-DD HH:mm:ss');
         // Selects distinct UIDs but picks the latest datetime of each UID
+        // NOTE: This endpoint takes no user input, so direct query substitution is permitted
         let result = await query('SELECT DISTINCT ON (uid) uid, datetime FROM public."flights" WHERE datetime>=\'{}\' ORDER BY uid ASC, datetime DESC'.format(hoursAgo));
 
         if (result.length > 0) {
@@ -78,6 +85,7 @@ router.get('/active', async (req, res, next) => {
             const point_identifiers = result.map(point => `(${point.uid}, '${point.datetime}')`).join(', ');
 
             // Search for partial points from the list of uids
+            // NOTE: This endpoint takes no user input, so direct query substitution is permitted
             result = await query(`SELECT uid, datetime, latitude, longitude, altitude FROM public."flights" WHERE (uid, datetime) in (${point_identifiers}) ORDER BY datetime DESC`);
             //console.log(`Full active flights: ${result.length}`);
             await res.json({
