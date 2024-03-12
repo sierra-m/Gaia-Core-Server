@@ -35,11 +35,15 @@ pg.types.setTypeParser(1114, str => moment.utc(str).format());
 /**
  * Makes a database query
  * @param command The query to make
+ * @param values Array of values to insert, for param insertion
  * @returns {Promise<array>} The resulting rows as an array
  */
-const query = async (command) => {
+const query = async (command, values = []) => {
   let client = await pgPool.connect();
-  let result = await client.query(command);
+  let result = await client.query({
+    text: command,
+    values: values
+  });
   await client.release();
   return result.rows;
 };

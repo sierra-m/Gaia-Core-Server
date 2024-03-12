@@ -69,7 +69,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const authRouter = async (req, res, next) => {
   if (req.query.key) {
     //console.log(`key: ${req.query.key}`);
-    const result = await query(`SELECT * FROM public."auth" WHERE token='${req.query.key}'`);
+    const result = await query(`SELECT * FROM public."auth" WHERE token=$1`, [req.query.key]);
     if (result.length > 0) {
       next();
     } else {
