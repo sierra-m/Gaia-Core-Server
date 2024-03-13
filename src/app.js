@@ -53,7 +53,7 @@ const useProduction = process.env.NODE_ENV === 'production';
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-app.use(logger(useProduction ? 'tiny' : 'dev'));
+app.use(logger(useProduction ? 'common' : 'dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
