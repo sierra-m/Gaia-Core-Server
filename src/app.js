@@ -26,6 +26,7 @@ import createError from 'http-errors'
 import express from 'express'
 import path from 'path'
 import cookieParser from 'cookie-parser'
+import {program} from 'commander';
 import {query} from './util/pg'
 import logger from 'morgan'
 import helmet from 'helmet'
@@ -39,6 +40,22 @@ import flightRouter from './routes/flight'
 import assignRouter from './routes/assign'
 import updateRouter from './routes/update'
 import lastRouter from './routes/last'
+
+
+program
+    .name('www.js')
+    .description('Starts the aurora webserver')
+    .version('0.1.0')
+    .option('-m, --modems <file>', 'Whitelist of modems in CSV format');
+
+program.parse();
+
+const options = program.opts();
+
+const modemList = new ModemList();
+await modemList.loadModems(options.modems);
+assignRouter.modemList = modemList;
+metaRouter.modemList = modemList;
 
 const app = express();
 

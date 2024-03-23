@@ -30,8 +30,7 @@
 
 import app from '../app';
 import debugLib from 'debug';
-import http from 'http'
-import fs from 'fs'
+import http from 'http';
 
 const debug = debugLib('react-backend:server');
 
@@ -116,3 +115,6 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+
+
