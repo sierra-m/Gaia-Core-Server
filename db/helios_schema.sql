@@ -20,10 +20,10 @@ COMMENT ON TABLE public.auth
 -- Modem information
 CREATE TABLE IF NOT EXISTS public.modems (
     imei bigint NOT NULL,
-    organization text NOT NULL,
-    code text NOT NULL,
+    organization text,
+    name text NOT NULL,
     CONSTRAINT imei_pkey PRIMARY KEY (imei),
-    UNIQUE (code)
+    UNIQUE (name)
 )
 WITH (
     OIDS = FALSE
