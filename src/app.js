@@ -33,6 +33,7 @@ import helmet from 'helmet'
 import parseUrl from 'parseurl'
 import {redirectToHTTPS} from 'express-http-to-https'
 import PinStates from './util/pinstates'
+import ModemList from "./util/modems";
 
 // Routes for various endpoints
 import metaRouter from './routes/meta'
@@ -65,6 +66,10 @@ app.use(helmet());
 //app.use(redirectToHTTPS());
 
 const useProduction = process.env.NODE_ENV === 'production';
+
+if (!useProduction) {
+  console.log(`Starting server with modem list:\n${modemList}`);
+}
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
