@@ -28,9 +28,11 @@ import moment from 'moment'
 import format from 'string-format'
 import { encodeUID, extractIMEI } from "../snowflake"
 import { FlightPoint } from "../util/data"
+import {next} from "lodash/seq";
 
 
 const router = express.Router();
+router.modemList = undefined;  // type: ModemList
 format.extend(String.prototype, {});
 
 // Creates a new point in the database for a given flight
@@ -64,6 +66,15 @@ router.post('/', async (req, res) => {
     //console.log('New point from Iris.');
     const flightPoint = new FlightPoint(req.body.point);
 
+    // Check IMEI is in allow list
+    if (!router.modemList.has(flightPoint.imei)) {
+      await res.status(403).json({
+        status: 'error',
+        data: `Modem IMEI ${flightPoint.imei} not in allowed list, datapoint rejected`
+      });
+      return;
+    }
+
     req.pinStates.add(flightPoint.imei, flightPoint.input_pins, flightPoint.output_pins);
 
     /**
@@ -84,7 +95,7 @@ router.post('/', async (req, res) => {
           flight: Number(pointUID)
         });
       } catch (e) {
-        await res.json({
+        await res.status(500).json({
           status: 'error',
           data: e.toString()
         });
@@ -116,7 +127,7 @@ router.post('/', async (req, res) => {
 
             return;  // Explicit return to avoid flight creation
           } catch (e) {
-            await res.json({
+            await res.status(500).json({
               status: 'error',
               data: e.toString()
             });
@@ -141,7 +152,7 @@ router.post('/', async (req, res) => {
           flight: Number(pointUID)
         });
       } catch (e) {
-        await res.json({
+        await res.status(500).json({
           status: 'error',
           data: e.toString()
         });
