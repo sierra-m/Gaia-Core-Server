@@ -29,17 +29,13 @@ import moment from 'moment'
 
 
 const router = express.Router();
+router.modemList = undefined;  // type: ModemList
 
 format.extend(String.prototype, {});
 
 router.get('/imeis', async (req, res, next) => {
     try {
-        const result = await query(
-            'SELECT DISTINCT imei FROM public."flight-registry"',
-            []
-        );
-
-        const imeis = result.map(x => x.imei);
+        const imeis = router.modemList.getRedactedSet(5);
         await res.json(imeis);
     } catch (e) {
         console.log(e);
