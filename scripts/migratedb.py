@@ -178,7 +178,7 @@ def migrate_db(old_cursor, new_cursor):
                     discarded_points.append((point, flight.imei, flight.timestring()))
             points_count += len(points)
         for (point, imei, start_date) in discarded_points:
-            log.write(f'Duplicate: uid {point.uid}, datetime {point.timestring()}, imei {imei}, start {start_date}\n')
+            log.write(f'Duplicate: uid {point.new_uid}, datetime {point.timestring()}, imei {imei}, start {start_date}\n')
 
     print(f'Registered {points_count} unique points for {len(flights)} flights, discarded {len(discarded_points)}')
     print('Details logged to ./changelog.txt')
