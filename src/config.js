@@ -22,6 +22,13 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
+// Minimum satellites required for a flight point to be considered valid
 const MIN_SATELLITES = 6;
+// Number of IMEI digits to expose to a requesting client
+const EXPOSED_IMEI_DIGITS = 5;
+// Number of hours a flight will show up in active flights list
+const ACTIVE_FLIGHT_DELTA_HRS = 12;
+// Minimum required time delta between contiguous points in a flight
+const CONTIG_FLIGHT_DELTA_HRS = 2;
 
-export {MIN_SATELLITES}
+export {MIN_SATELLITES, EXPOSED_IMEI_DIGITS, ACTIVE_FLIGHT_DELTA_HRS, CONTIG_FLIGHT_DELTA_HRS}
