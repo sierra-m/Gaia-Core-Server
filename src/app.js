@@ -57,6 +57,7 @@ const modemList = new ModemList();
 await modemList.loadModems(options.modems);
 assignRouter.modemList = modemList;
 metaRouter.modemList = modemList;
+flightRouter.modemList = modemList;
 
 const app = express();
 
@@ -67,9 +68,8 @@ app.use(helmet());
 
 const useProduction = process.env.NODE_ENV === 'production';
 
-if (!useProduction) {
-  console.log(`Starting server with modem list:\n${modemList}`);
-}
+// TODO: remove this when we know it's working
+console.log(`Starting server with modem list:\n${modemList}`);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
