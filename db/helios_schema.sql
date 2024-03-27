@@ -60,7 +60,6 @@ COMMENT ON TABLE public."flight-registry"
 -- Flight points
 CREATE TABLE IF NOT EXISTS public.flights
 (
-    primary_key bigserial,
     uid uuid NOT NULL,
     datetime timestamp without time zone NOT NULL,
     latitude double precision NOT NULL,
@@ -71,7 +70,7 @@ CREATE TABLE IF NOT EXISTS public.flights
     satellites smallint,
     input_pins smallint,
     output_pins smallint,
-    CONSTRAINT flights_pkey PRIMARY KEY (primary_key),
+    CONSTRAINT flights_pkey PRIMARY KEY (uid, datetime),
     CONSTRAINT "Datetime Valid" CHECK (datetime > '2013-01-01 00:00:00'::timestamp without time zone),
     CONSTRAINT "Altitude Positive" CHECK (altitude > -282::double precision),
     CONSTRAINT "Ground Speed Positive" CHECK (ground_speed >= 0::double precision),
