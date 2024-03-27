@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.flights
     output_pins smallint,
     CONSTRAINT flights_pkey PRIMARY KEY (primary_key),
     CONSTRAINT "Datetime Valid" CHECK (datetime > '2013-01-01 00:00:00'::timestamp without time zone),
-    CONSTRAINT "Altitude Positive" CHECK (altitude > 0::double precision),
+    CONSTRAINT "Altitude Positive" CHECK (altitude > -282::double precision),
     CONSTRAINT "Ground Speed Positive" CHECK (ground_speed >= 0::double precision),
     CONSTRAINT "Satellites Positive" CHECK (satellites >= 0)
 )
