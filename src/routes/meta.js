@@ -26,6 +26,7 @@ import express from 'express'
 import format from 'string-format'
 import {query} from '../util/pg'
 import moment from 'moment'
+import * as config from '../config'
 
 
 const router = express.Router();
@@ -35,7 +36,7 @@ format.extend(String.prototype, {});
 
 router.get('/imeis', async (req, res, next) => {
     try {
-        const imeis = router.modemList.getRedactedSet(5);
+        const imeis = router.modemList.getRedactedSet(config.EXPOSED_IMEI_DIGITS);
         await res.json(imeis);
     } catch (e) {
         console.log(e);
@@ -45,16 +46,19 @@ router.get('/imeis', async (req, res, next) => {
 
 router.get('/flights', async (req, res, next) => {
     try {
-        if (req.query.imei !== null && typeof req.query.imei === 'string') {
+        if ('modem_name' in req.query && req.query.modem_name !== null && typeof req.query.modem_name === 'string') {
+            const modem = router.modemList.getByName(req.query.modem_name);
+
+            if (!modem) {
+                await res.status(404).json({err: `Invalid modem name '${req.query.modem_name}'`});
+                return;
+            }
+
             let result = await query(
                 'SELECT * FROM public."flight-registry" WHERE imei=$1',
-                [req.query.imei]
+                [modem.imei]
             );
 
-            /*
-            * Mapping turns
-            *   `[{start_date: "2018-08-08T06:00:00.000Z
-            */
             let flights = result.map(x => x.start_date);
             res.json(flights);
         } else {
@@ -78,7 +82,7 @@ router.get('/active', async (req, res, next) => {
             //console.log(`Active flight tuples: ${result.length}`);
 
             // Order uids into '1, 2, 3' string format
-            const point_identifiers = result.map(point => `(${point.uid}, '${point.datetime}')`).join(', ');
+            const point_identifiers = result.map(point => `('${point.uid}', '${point.datetime}')`).join(', ');
 
             // Search for partial points from the list of uids
             // NOTE: This endpoint takes no user input, so direct query substitution is permitted
