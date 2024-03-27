@@ -113,6 +113,14 @@ export default class ModemList {
         return this.modems.get(imei);
     }
 
+    getByName (name) {
+        for (let modem of this.modems) {
+            if (modem.name === name) {
+                return modem;
+            }
+        }
+    }
+
     getRedactedSet (visibleDigits) {
         return [...this.modems.values()].map((modem) => ({
             partialImei: modem.imei.toString().slice(-visibleDigits),
