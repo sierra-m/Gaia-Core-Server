@@ -70,7 +70,7 @@ export default class ModemList {
         try {
             // Pull csv as array of records
             const records = processCsvFile(filepath);
-            const first = records[0];
+            const first = records.shift();
             // Validate column names
             if (first[0].toLowerCase() !== 'imei' || first[1].toLowerCase() !== 'organization' || first[2].toLowerCase() !== 'modem name') {
                 throw new ModemValidationError('First row must match [IMEI, Organization, Modem Name] format');
