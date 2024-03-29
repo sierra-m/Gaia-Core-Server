@@ -190,6 +190,9 @@ def migrate_db(old_cursor, new_cursor, old_conn, new_conn):
     discarded_points = []
 
     with open('changelog.txt', 'w') as log:
+        manager = multiprocess.Manager()
+        log_sema = manager.Semaphore(1)
+        discard_sema = manager.Semaphore(1)
         partial_func = functools.partial(handle_flight_reg,
                                          log=log,
                                          log_sema=log_sema,
@@ -198,9 +201,6 @@ def migrate_db(old_cursor, new_cursor, old_conn, new_conn):
                                          discarded_points=discarded_points,
                                          discard_sema=discard_sema,
                                          points_count=points_count)
-        manager = multiprocess.Manager()
-        log_sema = manager.Semaphore(1)
-        discard_sema = manager.Semaphore(1)
         pool = multiprocess.Pool(NUM_PROCESSES)
         for i in pool.imap(partial_func, iter_progress(flights, total=len(flights)), chunksize=int(len(flights)/NUM_PROCESSES)):
             pass
