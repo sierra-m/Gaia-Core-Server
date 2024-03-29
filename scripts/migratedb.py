@@ -1,14 +1,9 @@
 #!/usr/bin/python3
 import argparse
 import time
-import multiprocess
-import functools
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
-
-NUM_PROCESSES = 5
 
 
 class Flight:
@@ -158,27 +153,8 @@ def register_flight_point(cursor, point: FlightPoint):
         cursor.execute('ROLLBACK')
         return False
 
-
-def handle_flight_reg(flight, log, log_sema, old_conn, new_conn, discarded_points, discard_sema, points_count):
-    with old_conn.cursor() as proc_old_cursor:
-        with new_conn.cursor() as proc_new_cursor:
-            flight.new_uid = register_flight(proc_new_cursor, start_date=flight.timestring(), imei=flight.imei)
-            with log_sema:
-                log.write(f'Reassigning flight {flight} from uid {flight.old_uid} to {flight.new_uid}\n')
-
-            proc_old_cursor.execute(f"SELECT * FROM public.flights WHERE uid={flight.old_uid}")
-            points = [FlightPoint.from_db(x) for x in old_cursor.fetchall()]
-
-            for point in points:
-                point.new_uid = flight.new_uid
-                if not register_flight_point(proc_new_cursor, point):
-                    with discard_sema:
-                        discarded_points.append((point, flight.imei, flight.timestring()))
-            points_count.value += len(points)
-
-
 @timerunning
-def migrate_db(old_cursor, new_cursor, old_conn, new_conn):
+def migrate_db(old_cursor, new_cursor):
     old_cursor.execute('SELECT client, token FROM public.auth')
     auth_pairs = old_cursor.fetchall()
     for pair in auth_pairs:
@@ -186,30 +162,25 @@ def migrate_db(old_cursor, new_cursor, old_conn, new_conn):
 
     old_cursor.execute('SELECT * FROM public."flight-registry"')
     flights = [Flight.from_db(x) for x in old_cursor.fetchall()]
-    points_count = multiprocess.Value('i', 0)
+    points_count = 0
     discarded_points = []
-
     with open('changelog.txt', 'w') as log:
-        manager = multiprocess.Manager()
-        log_sema = manager.Semaphore(1)
-        discard_sema = manager.Semaphore(1)
-        partial_func = functools.partial(handle_flight_reg,
-                                         log=log,
-                                         log_sema=log_sema,
-                                         old_conn=old_conn,
-                                         new_conn=new_conn,
-                                         discarded_points=discarded_points,
-                                         discard_sema=discard_sema,
-                                         points_count=points_count)
-        pool = multiprocess.Pool(NUM_PROCESSES)
-        for i in pool.imap(partial_func, iter_progress(flights, total=len(flights)), chunksize=int(len(flights)/NUM_PROCESSES)):
-            pass
-        pool.close()
+        for flight in iter_progress(flights, total=len(flights)):
+            flight.new_uid = register_flight(new_cursor, start_date=flight.timestring(), imei=flight.imei)
+            log.write(f'Reassigning flight {flight} from uid {flight.old_uid} to {flight.new_uid}\n')
 
+            old_cursor.execute(f"SELECT * FROM public.flights WHERE uid={flight.old_uid}")
+            points = [FlightPoint.from_db(x) for x in old_cursor.fetchall()]
+
+            for point in points:
+                point.new_uid = flight.new_uid
+                if not register_flight_point(new_cursor, point):
+                    discarded_points.append((point, flight.imei, flight.timestring()))
+            points_count += len(points)
         for (point, imei, start_date) in discarded_points:
             log.write(f'Duplicate: uid {point.new_uid}, datetime {point.timestring()}, imei {imei}, start {start_date}\n')
 
-    print(f'Registered {points_count.value} unique points for {len(flights)} flights, discarded {len(discarded_points)}')
+    print(f'Registered {points_count} unique points for {len(flights)} flights, discarded {len(discarded_points)}')
     print('Details logged to ./changelog.txt')
 
 
@@ -226,7 +197,7 @@ if __name__ == '__main__':
         print('Opened both databases, proceeding with migration')
         with old_db_conn.cursor() as old_cursor:
             with new_db_conn.cursor() as new_cursor:
-                migrate_db(old_cursor, new_cursor, old_db_conn, new_db_conn)
+                migrate_db(old_cursor, new_cursor)
                 new_cursor.execute('COMMIT')
     else:
         parser.print_help()
