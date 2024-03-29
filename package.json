@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "babel-node -- ./src/bin/www.js --extensions \".js\" --modems $MODEMS_ALLOWLIST",
+    "start": "babel-node --extensions \".js\" -- ./src/bin/www.js --modems $MODEMS_ALLOWLIST",
     "build:server": "babel src -d dist --extensions \".js\""
   },
   "dependencies": {
