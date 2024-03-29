@@ -1,7 +1,7 @@
 
 import fs from 'node:fs';
-import { parse } from 'csv-parse';
-import {query} from '../util/pg';
+import { parse } from 'csv-parse/sync';
+import {query} from './pg';
 
 class ModemValidationError extends Error {
     constructor(message) {
@@ -10,18 +10,9 @@ class ModemValidationError extends Error {
     }
 }
 
-const processCsvFile = async (filepath) => {
-    const records = [];
-    const parser = fs
-        .createReadStream(filepath)
-        .pipe(parse({
-            // CSV options if any
-        }));
-    for await (const record of parser) {
-        // Work with each record
-        records.push(record);
-    }
-    return records;
+const processCsvFile = (filepath) => {
+    const content = fs.readFileSync(`${os.tmpdir()}/input.csv`);
+    return parse(content);
 };
 
 
@@ -75,10 +66,10 @@ const storeModems = async (modems) => {
 export default class ModemList {
     modems = new Map();
 
-    async loadModems (filepath) {
+    loadModems (filepath) {
         try {
             // Pull csv as array of records
-            const records = await processCsvFile(filepath);
+            const records = processCsvFile(filepath);
             const first = records[0];
             // Validate column names
             if (first[0].toLowerCase() !== 'imei' || first[1].toLowerCase() !== 'organization' || first[2].toLowerCase() !== 'modem name') {
