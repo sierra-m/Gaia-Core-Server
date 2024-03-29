@@ -194,7 +194,7 @@ def migrate_db(old_cursor, new_cursor, old_conn, new_conn):
         def partial_func(flight):
             handle_flight_reg(flight, log, log_sema, old_conn, new_conn, discarded_points, discard_sema, points_count)
         with multiprocessing.Pool(NUM_PROCESSES) as p:
-            for i in p.imap(partial_func, iter_progress(flights, total=len(flights)), chunksize=len(flights)/NUM_PROCESSES):
+            for i in p.imap(partial_func, iter_progress(flights, total=len(flights)), chunksize=int(len(flights)/NUM_PROCESSES)):
                 pass
 
         for (point, imei, start_date) in discarded_points:
