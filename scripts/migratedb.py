@@ -106,6 +106,7 @@ def create_new_db(old_conn, new_name, table_schema, pg_password):
                                  host='localhost',
                                  port='5432',
                                  database=new_name)
+    new_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     with new_conn.cursor() as new_cursor:
         new_cursor.execute(open(table_schema, "r").read())
     print(f'Created new db "{new_name}"')
@@ -137,7 +138,6 @@ def register_flight(cursor, start_date: str, imei: int) -> str:
 
 
 def register_flight_point(cursor, point: FlightPoint):
-    cursor.execute('BEGIN')
     try:
         cursor.execute(new_db_add_point.format(uid=point.new_uid,
                                                datetime=point.timestring(),
@@ -147,10 +147,8 @@ def register_flight_point(cursor, point: FlightPoint):
                                                vert_vel=point.vertical_velocity,
                                                speed=point.ground_speed,
                                                sats=point.satellites))
-        cursor.execute('COMMIT')
         return True
     except psycopg2.errors.UniqueViolation:
-        cursor.execute('ROLLBACK')
         return False
 
 @timerunning
