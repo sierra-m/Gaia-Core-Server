@@ -8,6 +8,9 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 
+NUM_PROCESSES = 5
+
+
 class Flight:
     def __init__(self, old_uid, start_date, imei, new_uid=None):
         self.old_uid = old_uid
@@ -190,8 +193,8 @@ def migrate_db(old_cursor, new_cursor, old_conn, new_conn):
     with open('changelog.txt', 'w') as log:
         def partial_func(flight):
             handle_flight_reg(flight, log, log_sema, old_conn, new_conn, discarded_points, discard_sema, points_count)
-        with multiprocessing.Pool(5) as p:
-            p.imap(partial_func, iter_progress(flights, total=len(flights)), len(flights)/5)
+        with multiprocessing.Pool(NUM_PROCESSES) as p:
+            p.imap(partial_func, iter_progress(flights, total=len(flights)), chunksize=len(flights)/NUM_PROCESSES)
 
         for (point, imei, start_date) in discarded_points:
             log.write(f'Duplicate: uid {point.new_uid}, datetime {point.timestring()}, imei {imei}, start {start_date}\n')
