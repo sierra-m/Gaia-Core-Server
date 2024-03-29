@@ -1,5 +1,5 @@
 
-import fs from 'node:fs';
+import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import {query} from './pg';
 
