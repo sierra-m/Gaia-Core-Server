@@ -186,7 +186,7 @@ def migrate_db(old_cursor, new_cursor, old_conn, new_conn):
 
     old_cursor.execute('SELECT * FROM public."flight-registry"')
     flights = [Flight.from_db(x) for x in old_cursor.fetchall()]
-    points_count = multiprocessing.Value('i', 0)
+    points_count = multiprocess.Value('i', 0)
     discarded_points = []
     log_sema = multiprocess.Semaphore(1)
     discard_sema = multiprocess.Semaphore(1)
