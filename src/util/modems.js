@@ -46,7 +46,7 @@ const checkUniqueNames = (names) => {
         }, {});
     const duplicates = Object.keys(uniq).filter((a) => uniq[a] > 1);
 
-    if (duplicates) {
+    if (duplicates.length > 0) {
         throw new ModemValidationError(`Duplicate modem names are not allowed, detected: ${duplicates}`);
     }
 }
