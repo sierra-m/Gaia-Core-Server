@@ -107,7 +107,6 @@ def create_new_db(old_conn, new_name, table_schema, pg_password):
                                  host='localhost',
                                  port='5432',
                                  database=new_name)
-    new_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     with new_conn.cursor() as new_cursor:
         new_cursor.execute(open(table_schema, "r").read())
     print(f'Created new db "{new_name}"')
