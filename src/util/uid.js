@@ -48,11 +48,11 @@ const getFlightByUID = async (uid) => {
 
 
 const getUIDByFlight = async (imei, start_date) => {
-    if (typeof imei === 'string' && moment.isMoment(start_date)) {
+    if (moment.isMoment(start_date)) {
         const isoDate = start_date.format('YYYY-MM-DD HH:mm:ss');
         let result = await query(
             'SELECT uid FROM public."flight-registry" WHERE imei=$1 AND start_date=$2',
-            [imei, isoDate]  // stored in db with HH:MM:SS
+            [imei, isoDate]
         );
         if (result.length > 0) {
             return result[0].uid;
