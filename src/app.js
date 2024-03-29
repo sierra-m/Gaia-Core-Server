@@ -54,7 +54,7 @@ program.parse();
 const options = program.opts();
 
 const modemList = new ModemList();
-await modemList.loadModems(options.modems);
+modemList.loadModems(options.modems);
 assignRouter.modemList = modemList;
 metaRouter.modemList = modemList;
 flightRouter.modemList = modemList;
