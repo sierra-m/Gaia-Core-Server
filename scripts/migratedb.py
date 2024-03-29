@@ -53,8 +53,9 @@ class FlightPoint:
 
 
 new_db_add_point = 'INSERT INTO public."flights" (uid, datetime, latitude, longitude, altitude, vertical_velocity,' \
-                 'ground_speed, satellites) values ' \
-                 '(\'{uid}\', \'{datetime}\', {lat}, {lng}, {alt}, {vert_vel}, {speed}, {sats})'
+                 'ground_speed, satellites) VALUES ' \
+                 '(\'{uid}\', \'{datetime}\', {lat}, {lng}, {alt}, {vert_vel}, {speed}, {sats})' \
+                 ' ON CONFLICT DO NOTHING'  # ignore duplicates
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='▊'):
@@ -138,18 +139,14 @@ def register_flight(cursor, start_date: str, imei: int) -> str:
 
 
 def register_flight_point(cursor, point: FlightPoint):
-    try:
-        cursor.execute(new_db_add_point.format(uid=point.new_uid,
-                                               datetime=point.timestring(),
-                                               lat=point.latitude,
-                                               lng=point.longitude,
-                                               alt=point.altitude,
-                                               vert_vel=point.vertical_velocity,
-                                               speed=point.ground_speed,
-                                               sats=point.satellites))
-        return True
-    except psycopg2.errors.UniqueViolation:
-        return False
+    cursor.execute(new_db_add_point.format(uid=point.new_uid,
+                                           datetime=point.timestring(),
+                                           lat=point.latitude,
+                                           lng=point.longitude,
+                                           alt=point.altitude,
+                                           vert_vel=point.vertical_velocity,
+                                           speed=point.ground_speed,
+                                           sats=point.satellites))
 
 @timerunning
 def migrate_db(old_cursor, new_cursor):
@@ -161,7 +158,6 @@ def migrate_db(old_cursor, new_cursor):
     old_cursor.execute('SELECT * FROM public."flight-registry"')
     flights = [Flight.from_db(x) for x in old_cursor.fetchall()]
     points_count = 0
-    discarded_points = []
     with open('changelog.txt', 'w') as log:
         for flight in iter_progress(flights, total=len(flights)):
             flight.new_uid = register_flight(new_cursor, start_date=flight.timestring(), imei=flight.imei)
@@ -172,13 +168,12 @@ def migrate_db(old_cursor, new_cursor):
 
             for point in points:
                 point.new_uid = flight.new_uid
-                if not register_flight_point(new_cursor, point):
-                    discarded_points.append((point, flight.imei, flight.timestring()))
+                register_flight_point(new_cursor, point)
             points_count += len(points)
-        for (point, imei, start_date) in discarded_points:
-            log.write(f'Duplicate: uid {point.new_uid}, datetime {point.timestring()}, imei {imei}, start {start_date}\n')
+    new_cursor.execute("SELECT count(*) AS exact_count FROM public.flights")
+    final_count = new_cursor.fetchone()[0]
 
-    print(f'Registered {points_count} unique points for {len(flights)} flights, discarded {len(discarded_points)}')
+    print(f'Registered {final_count} unique points for {len(flights)} flights, discarded {points_count - final_count}')
     print('Details logged to ./changelog.txt')
 
 
