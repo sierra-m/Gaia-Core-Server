@@ -11,7 +11,7 @@ class ModemValidationError extends Error {
 }
 
 const processCsvFile = (filepath) => {
-    const content = fs.readFileSync(`${os.tmpdir()}/input.csv`);
+    const content = fs.readFileSync(filepath);
     return parse(content);
 };
 
