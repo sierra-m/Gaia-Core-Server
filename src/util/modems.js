@@ -105,7 +105,7 @@ export default class ModemList {
     }
 
     getByName (name) {
-        for (let modem of this.modems) {
+        for (let modem of this.modems.entries()) {
             if (modem.name === name) {
                 return modem;
             }
