@@ -34,10 +34,10 @@ router.modemList = undefined;  // type: ModemList
 
 format.extend(String.prototype, {});
 
-router.get('/imeis', async (req, res, next) => {
+router.get('/modems', async (req, res, next) => {
     try {
-        const imeis = router.modemList.getRedactedSet(config.EXPOSED_IMEI_DIGITS);
-        await res.json(imeis);
+        const modems = router.modemList.getRedactedSet(config.EXPOSED_IMEI_DIGITS);
+        await res.json(modems);
     } catch (e) {
         console.log(e);
         next(e);
