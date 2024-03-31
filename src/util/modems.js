@@ -10,6 +10,13 @@ class ModemValidationError extends Error {
     }
 }
 
+class ModemLoadError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "ModemLoadError";
+    }
+}
+
 const processCsvFile = (filepath) => {
     const content = fs.readFileSync(filepath);
     return parse(content);
@@ -53,7 +60,7 @@ const checkUniqueNames = (names) => {
 
 
 const storeModems = async (modems) => {
-    await query(`DELETE * FROM public.modems`);
+    await query(`DELETE FROM public.modems`);
     for (let modem of modems) {
         await query(
             "INSERT INTO public.modems (imei, organization, name) VALUES ($1, $2, $3)",
@@ -62,11 +69,19 @@ const storeModems = async (modems) => {
     }
 }
 
+const loadModemsFromDb = async () => {
+    const result = await query(`SELECT * FROM public.modems`);
+    if (result.length < 1) {
+        throw new ModemLoadError('No data loaded from database');
+    }
+    return result;
+}
+
 
 export default class ModemList {
     modems = new Map();
 
-    loadModems (filepath) {
+    async loadModems (filepath) {
         try {
             // Pull csv as array of records
             const records = processCsvFile(filepath);
@@ -80,8 +95,10 @@ export default class ModemList {
             // Ensure modem names are all unique
             const names = formattedModems.map((modem) => (modem.name));
             checkUniqueNames(names);
-            // TODO: enable modem storage with database migration complete
-            //await storeModems(modems);
+            // Note: called without 'await' as this class is sync, while pg is async. Should not
+            // affect operations
+            await storeModems(formattedModems);
+            console.log(`Stored modem records in database`);
 
             // Load modem objects into map for easy searching
             for (let modem of formattedModems) {
@@ -91,8 +108,11 @@ export default class ModemList {
         } catch (e) {
             console.error(`Caught error while loading from CSV:\n${e}`);
             console.warn('Attempting to load modems from the database...')
-            // TODO: load modems from database
-            throw new Error('Not implemented');
+            const loaded = await loadModemsFromDb();
+            // Load modem objects into map for easy searching
+            for (let modem of loaded) {
+                this.modems.set(modem.imei, modem);
+            }
         }
     }
 
