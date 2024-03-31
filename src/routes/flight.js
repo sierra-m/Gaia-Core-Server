@@ -55,7 +55,12 @@ const exists = (thing) => thing !== null;
  *      data: [
  *        [1000, 52, ...],
  *        [1001, 53, ...]
- *      ]
+ *      ],
+ *      modem: {
+ *        partialImei: '04940',
+ *        org: 'Some-Uni',
+ *        name: 'MDM001'
+ *      }
  *    }
  *
  * The `datetime` property is also converted to a unix integer
@@ -118,6 +123,7 @@ const csvFormatter = async (data) => {
 router.get('/', async (req, res, next) => {
   try {
     let uid = null;
+    let modem;
     // For filenames
     let modem_name, date;
     if (req.query.uid) {
@@ -131,7 +137,7 @@ router.get('/', async (req, res, next) => {
         await res.status(404).json({err: `No flight found for UID ${uid}`});
         return;
       }
-      const modem = router.modemList.get(flight.imei);
+      modem = router.modemList.get(flight.imei);
 
       modem_name = modem.name;
       date = flight.start_date.format('YYYY-MM-DD');
@@ -142,7 +148,7 @@ router.get('/', async (req, res, next) => {
         return;
       }
       // Pull modem info from modem name
-      const modem = router.modemList.getByName(req.query.modem_name);
+      modem = router.modemList.getByName(req.query.modem_name);
       if (!modem) {
         await res.status(404).json({err: `No modem found for name '${req.query.modem_name}'`})
         return;
@@ -179,6 +185,8 @@ router.get('/', async (req, res, next) => {
       await res.send(kml);
     } else {
       const jsv = await jsvFormatter(result);
+      // Attach modem info for clarity
+      jsv.modem = modem;
       await res.json(jsv);
     }
   } catch (e) {
