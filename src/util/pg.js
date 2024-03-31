@@ -43,14 +43,14 @@ const query = async (command, values = []) => {
   let result;
 
   try {
-    client.query('BEGIN')
+    await client.query('BEGIN');
     result = await client.query({
       text: command,
       values: values
     });
-    client.query('COMMIT')
+    await client.query('COMMIT');
   } catch (e) {
-    client.query('ROLLBACK')
+    await client.query('ROLLBACK');
     throw e;
   } finally {
     await client.release();
