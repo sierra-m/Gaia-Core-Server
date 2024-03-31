@@ -28,7 +28,7 @@ import {query} from '../util/pg'
 import {extractIMEI} from '../snowflake'
 import moment from 'moment'
 import ElevationAPI from '../util/elevation'
-import {standardizeUID, getFlightByUID, getUIDByFlight} from '../util/uid';
+import {standardizeUID} from '../util/uid';
 
 const router = express.Router();
 
