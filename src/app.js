@@ -42,119 +42,120 @@ import assignRouter from './routes/assign'
 import updateRouter from './routes/update'
 import lastRouter from './routes/last'
 
+async function buildApp (){
 
-program
-    .name('www.js')
-    .description('Starts the aurora webserver')
-    .version('0.1.0')
-    .option('-m, --modems <file>', 'Whitelist of modems in CSV format');
+  program
+      .name('www.js')
+      .description('Starts the aurora webserver')
+      .version('0.1.0')
+      .option('-m, --modems <file>', 'Whitelist of modems in CSV format');
 
-program.parse();
+  program.parse();
 
-const options = program.opts();
+  const options = program.opts();
 
-const modemList = new ModemList();
-modemList.loadModems(options.modems);
-assignRouter.modemList = modemList;
-metaRouter.modemList = modemList;
-flightRouter.modemList = modemList;
+  const modemList = new ModemList();
+  await modemList.loadModems(options.modems);
+  assignRouter.modemList = modemList;
+  metaRouter.modemList = modemList;
+  flightRouter.modemList = modemList;
 
-const app = express();
+  const app = express();
 
-// For security
-app.use(helmet());
+  // For security
+  app.use(helmet());
 
-//app.use(redirectToHTTPS());
+  const useProduction = process.env.NODE_ENV === 'production';
 
-const useProduction = process.env.NODE_ENV === 'production';
+  // TODO: remove this when we know it's working
+  console.log(`Starting server with modem list:\n${modemList}`);
 
-// TODO: remove this when we know it's working
-console.log(`Starting server with modem list:\n${modemList}`);
+  // view engine setup
+  app.set('views', path.join(__dirname, 'views'));
+  app.set('view engine', 'jade');
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+  app.use(logger(useProduction ? 'common' : 'dev'));
+  app.use(express.json());
+  app.use(express.urlencoded({extended: false}));
+  app.use(cookieParser());
+  app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(logger(useProduction ? 'common' : 'dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-/**
- * Checks whether request contains a valid API key param
- * @param req
- * @param res
- * @param next
- * @returns {Promise<void>}
- */
-const authRouter = async (req, res, next) => {
-  if (req.query.key) {
-    //console.log(`key: ${req.query.key}`);
-    const result = await query(`SELECT * FROM public."auth" WHERE token=$1`, [req.query.key]);
-    if (result.length > 0) {
-      next();
+  /**
+   * Checks whether request contains a valid API key param
+   * @param req
+   * @param res
+   * @param next
+   * @returns {Promise<void>}
+   */
+  const authRouter = async (req, res, next) => {
+    if (req.query.key) {
+      //console.log(`key: ${req.query.key}`);
+      const result = await query(`SELECT * FROM public."auth" WHERE token=$1`, [req.query.key]);
+      if (result.length > 0) {
+        next();
+      } else {
+        res.status(403);
+        res.send('Invalid token.')
+      }
     } else {
-      res.status(403);
-      res.send('Invalid token.')
+      res.status(400);
+      res.send('Please supply a key');
     }
-  } else {
-    res.status(400);
-    res.send('Please supply a key');
+  };
+
+  /**
+   * A global pin states object passed to endpoints `assign` and `update`
+   * to pass pin states from Iris to each client
+   */
+  const pinStates = new PinStates();
+
+  const attachPinStates = async (req, res, next) => {
+    req.pinStates = pinStates;
+    next();
+  };
+
+  app.use('/meta', metaRouter);
+  app.use('/flight', flightRouter);
+  app.use('/assign', authRouter, attachPinStates, assignRouter);
+  app.use('/update', attachPinStates, updateRouter);
+  app.use('/last', authRouter, lastRouter);
+
+  /*
+  * REACT APP
+  * =========
+  * Production build intended to run aurora from directory adjacent
+  */
+  if (useProduction) {
+    app.use(express.static(path.join(__dirname, '/../../Aurora-React/build')));
+    app.use(['/tracking', '/404'], async (req, res) => {
+      res.sendFile(path.join(__dirname, '/../../Aurora-React/build', 'index.html'));
+    });
+    app.use('/', function (req, res, next) {
+      if (parseUrl.original(req).pathname !== req.baseUrl) return next(); // skip this for strictness
+      res.sendFile(path.join(__dirname, '/../../Aurora-React/build', 'index.html'));
+    });
   }
-};
 
-/**
- * A global pin states object passed to endpoints `assign` and `update`
- * to pass pin states from Iris to each client
- */
-const pinStates = new PinStates();
-
-const attachPinStates = async (req, res, next) => {
-  req.pinStates = pinStates;
-  next();
-};
-
-app.use('/meta', metaRouter);
-app.use('/flight', flightRouter);
-app.use('/assign', authRouter, attachPinStates, assignRouter);
-app.use('/update', attachPinStates, updateRouter);
-app.use('/last', authRouter, lastRouter);
-
-/*
-* REACT APP
-* =========
-* Production build intended to run aurora from directory adjacent
-*/
-if (useProduction) {
-  app.use(express.static(path.join(__dirname, '/../../Aurora-React/build')));
-  app.use(['/tracking', '/404'], async (req, res) => {
-    res.sendFile(path.join(__dirname, '/../../Aurora-React/build', 'index.html'));
+  // catch 404 and forward to error handler
+  app.use(async (req, res, next) => {
+    if (useProduction) {
+      res.redirect('/404');
+    } else {
+      next(createError(404));
+    }
   });
-  app.use('/', function(req, res, next) {
-    if (parseUrl.original(req).pathname !== req.baseUrl) return next(); // skip this for strictness
-    res.sendFile(path.join(__dirname, '/../../Aurora-React/build', 'index.html'));
+
+  // error handler
+  app.use(async (err, req, res, next) => {
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+    // render the error page
+    res.status(err.status || 500);
+    res.render('error');
   });
+  return app;
 }
 
-// catch 404 and forward to error handler
-app.use(async (req, res, next) => {
-  if (useProduction) {
-    res.redirect('/404');
-  } else {
-    next(createError(404));
-  }
-});
-
-// error handler
-app.use(async (err, req, res, next) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
-export default app
+export default buildApp;
