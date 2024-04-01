@@ -186,7 +186,7 @@ router.get('/', async (req, res, next) => {
     } else {
       const jsv = await jsvFormatter(result);
       // Attach modem info for clarity
-      jsv.modem = modem;
+      jsv.modem = router.modemList.getRedacted(modem.imei);
       await res.json(jsv);
     }
   } catch (e) {
