@@ -111,7 +111,7 @@ export default class ModemList {
             const loaded = await loadModemsFromDb();
             // Load modem objects into map for easy searching
             for (let modem of loaded) {
-                this.modems.set(modem.imei, modem);
+                this.modems.set(modem.imei, {imei: modem.imei, org: modem.organization, name: modem.name});
             }
         }
     }
