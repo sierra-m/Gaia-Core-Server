@@ -110,7 +110,7 @@ router.post('/', async (req, res) => {
         } else {
           await res.status(500).json({
             status: 'error',
-            data: 'internal server error when inserting flight point for case "today"'
+            data: `internal server error when inserting flight point for case 'today'`
           });
           console.log(e);
           console.log('Today error');
@@ -148,7 +148,7 @@ router.post('/', async (req, res) => {
           } else {
             await res.status(500).json({
               status: 'error',
-              data: `internal server error when inserting flight point for case "recent" for uid ${result[0].uid}`
+              data: `internal server error when inserting flight point for case 'recent' for uid ${result[0].uid}`
             });
             console.log(e);
             console.log('Recent error');
@@ -179,7 +179,7 @@ router.post('/', async (req, res) => {
         } else {
           await res.status(500).json({
             status: 'error',
-            data: `internal server error when inserting flight point for case "recent" for imei ${flightPoint.imei}`
+            data: `internal server error when inserting flight point for case 'created' for imei ${flightPoint.imei}`
           });
           console.log(e);
           console.log('Created error');
