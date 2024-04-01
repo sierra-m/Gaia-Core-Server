@@ -40,8 +40,8 @@ class FlightPoint {
     this.input_pins = packet.input_pins;
     this.output_pins = packet.output_pins;
     // Lowest point in the US
-    if (this.altitude < -282) {
-      this.altitude = -282;
+    if (this.altitude < -281) {
+      this.altitude = -281;
     }
   }
 
