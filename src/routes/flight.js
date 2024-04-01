@@ -138,7 +138,7 @@ router.get('/', async (req, res, next) => {
         await res.status(404).json({err: `No flight found for UID ${uid}`});
         return;
       }
-      console.log(`Flight found: ${flight}`);
+      console.log(`Flight found: ${JSON.stringify(flight)}`);
       modem = router.modemList.get(flight.imei);
 
       modem_name = modem.name;
