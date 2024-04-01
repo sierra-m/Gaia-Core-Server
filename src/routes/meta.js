@@ -59,7 +59,7 @@ router.get('/flights', async (req, res, next) => {
                 [modem.imei]
             );
 
-            let flights = result.map(x => x.start_date);
+            let flights = result.map(x => ({date: x.start_date, uid: x.uid}));
             res.json(flights);
         } else {
             res.sendStatus(400);
