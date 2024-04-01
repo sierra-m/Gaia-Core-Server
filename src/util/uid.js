@@ -38,9 +38,8 @@ const getFlightByUID = async (uid) => {
             [uid]
         );
         if (result.length > 0) {
-            console.log(`getFlightByUID: typeof imei is ${typeof result[0].imei}`)
             return {
-                imei: result[0].imei,
+                imei: parseInt(result[0].imei),  // pg returns bigint as string
                 start_date: moment.utc(result[0].start_date, 'YYYY-MM-DD HH:mm:ss')
             }
         }
