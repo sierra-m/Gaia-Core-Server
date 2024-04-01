@@ -27,6 +27,7 @@ import format from 'string-format'
 import {query} from '../util/pg'
 import moment from 'moment'
 import * as config from '../config'
+import {getFlightByUID} from '../util/uid'
 
 
 const router = express.Router();
@@ -36,7 +37,7 @@ format.extend(String.prototype, {});
 
 router.get('/modems', async (req, res, next) => {
     try {
-        const modems = router.modemList.getRedactedSet(config.EXPOSED_IMEI_DIGITS);
+        const modems = router.modemList.getRedactedSet();
         await res.json(modems);
     } catch (e) {
         console.log(e);
@@ -88,6 +89,11 @@ router.get('/active', async (req, res, next) => {
             // NOTE: This endpoint takes no user input, so direct query substitution is permitted
             result = await query(`SELECT uid, datetime, latitude, longitude, altitude FROM public."flights" WHERE (uid, datetime) in (${point_identifiers}) ORDER BY datetime DESC`);
             //console.log(`Full active flights: ${result.length}`);
+            for (let partial of result) {
+                const {imei, start_date} = await getFlightByUID(partial.uid);
+                partial.modem = router.modemList.getRedacted(imei);
+                partial.start_date = start_date;
+            }
             await res.json({
                 status: 'active',
                 points: result
