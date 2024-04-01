@@ -30,5 +30,9 @@ const EXPOSED_IMEI_DIGITS = 5;
 const ACTIVE_FLIGHT_DELTA_HRS = 12;
 // Minimum required time delta between contiguous points in a flight
 const CONTIG_FLIGHT_DELTA_HRS = 2;
+ // Minimum allowed altitude for flight point assignment
+const MIN_ALTITUDE = -86;
+// Maximum allowed altitude for flight point assignment
+const MAX_ALTITUDE = 60_000;
 
-export {MIN_SATELLITES, EXPOSED_IMEI_DIGITS, ACTIVE_FLIGHT_DELTA_HRS, CONTIG_FLIGHT_DELTA_HRS}
+export {MIN_SATELLITES, EXPOSED_IMEI_DIGITS, ACTIVE_FLIGHT_DELTA_HRS, CONTIG_FLIGHT_DELTA_HRS, MIN_ALTITUDE, MAX_ALTITUDE}

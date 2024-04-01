@@ -68,8 +68,18 @@ router.post('/', async (req, res) => {
 
     const flightPoint = new FlightPoint(req.body.point);
 
-    if (flightPoint.altitude < -86) {
-      await res.status(400).json({err: `Altitude invalid: below -86m, flight point rejected`});
+    if (flightPoint.altitude < config.MIN_ALTITUDE) {
+      await res.status(400).json({
+        status: 'error',
+        data: `Altitude invalid: below ${config.MIN_ALTITUDE}m, flight point rejected`
+      });
+      return;
+    }
+    if (flightPoint.altitude > config.MAX_ALTITUDE) {
+      await res.status(400).json({
+        status: 'error',
+        data: `Altitude invalid: above ${config.MAX_ALTITUDE}m, flight point rejected`
+      });
       return;
     }
 
