@@ -2,6 +2,7 @@
 import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import {query} from './pg';
+import * as config from '../config'
 
 class ModemValidationError extends Error {
     constructor(message) {
@@ -132,12 +133,17 @@ export default class ModemList {
         }
     }
 
-    getRedactedSet (visibleDigits) {
-        return [...this.modems.values()].map((modem) => ({
-            partialImei: modem.imei.toString().slice(-visibleDigits),
+    getRedacted (imei) {
+        const modem = this.get(imei);
+        return {
+            partialImei: modem.imei.toString().slice(-config.EXPOSED_IMEI_DIGITS),
             org: modem.org,
             name: modem.name
-        }));
+        }
+    }
+
+    getRedactedSet () {
+        return [...this.modems.keys()].map((imei) => this.getRedacted(imei));
     }
 
     toString () {
