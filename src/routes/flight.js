@@ -128,6 +128,7 @@ router.get('/', async (req, res, next) => {
     let modem_name, date;
     if (req.query.uid) {
       uid = standardizeUID(req.query.uid);
+      console.log(`Standardized UID: ${uid}, Received: ${req.query.uid}`)
       if (!uid) {
         await res.status(400).json({err: `UID improperly formatted`});
         return;
