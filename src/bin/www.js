@@ -39,7 +39,7 @@ const debug = debugLib('react-backend:server');
  */
 
 async function main () {
-  const app = buildApp();
+  const app =  await buildApp();
 
   const port = normalizePort(process.env.PORT || '80');
   const host = process.env.HOST || '0.0.0.0';
