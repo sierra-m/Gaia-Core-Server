@@ -110,7 +110,7 @@ router.post('/', async (req, res, next) => {
 
       await res.json(content);
     } else {
-      res.sendStatus(400);
+      await res.status(400).json({err: "Bad request"});
     }
   } catch (e) {
     console.log(e);
