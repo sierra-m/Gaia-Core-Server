@@ -73,7 +73,7 @@ router.post('/', async (req, res, next) => {
         await res.status(400).json({err: `UID improperly formatted`});
         return;
       }
-      if (!Number.isInteger(req.body.uid)) {
+      if (!Number.isInteger(req.body.datetime)) {
         await res.status(400).json({err: `Datetime must be in UNIX format`});
         return;
       }
