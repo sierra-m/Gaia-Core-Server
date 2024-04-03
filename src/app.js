@@ -114,11 +114,11 @@ async function buildApp (){
     next();
   };
 
-  app.use('/meta', metaRouter);
-  app.use('/flight', flightRouter);
-  app.use('/assign', authRouter, attachPinStates, assignRouter);
-  app.use('/update', attachPinStates, updateRouter);
-  app.use('/last', authRouter, lastRouter);
+  app.use('/api/meta', metaRouter);
+  app.use('/api/flight', flightRouter);
+  app.use('/api/assign', authRouter, attachPinStates, assignRouter);
+  app.use('/api/update', attachPinStates, updateRouter);
+  app.use('/api/last', authRouter, lastRouter);
 
   /*
   * REACT APP
