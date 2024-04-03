@@ -114,7 +114,7 @@ const jsvFormatter = async (data) => {
 };
 
 const csvFormatter = async (data) => {
-  const fields = ['uid', 'datetime', 'latitude', 'longitude', 'altitude', 'vertical_velocity', 'ground_speed', 'satellites'];
+  const fields = ['uid', 'datetime', 'latitude', 'longitude', 'altitude', 'vertical_velocity', 'ground_speed', 'satellites', 'input_pins', 'output_pins'];
   const opts = { fields };
 
   return await json2csv.parseAsync(data, opts);
