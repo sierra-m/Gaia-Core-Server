@@ -73,6 +73,7 @@ router.post('/', async (req, res) => {
         status: 'error',
         data: `Altitude invalid: below ${config.MIN_ALTITUDE}m, flight point rejected`
       });
+      console.log(`Rejected point: altitude too low`);
       return;
     }
     if (flightPoint.altitude > config.MAX_ALTITUDE) {
@@ -80,6 +81,7 @@ router.post('/', async (req, res) => {
         status: 'error',
         data: `Altitude invalid: above ${config.MAX_ALTITUDE}m, flight point rejected`
       });
+      console.log(`Rejected point: altitude too high`);
       return;
     }
 
@@ -89,6 +91,7 @@ router.post('/', async (req, res) => {
         status: 'error',
         data: `Flight point fields are incorrectly formatted: ${bad_fields}`
       });
+      console.log(`Rejected point: bad fields`);
       return;
     }
 
@@ -98,6 +101,7 @@ router.post('/', async (req, res) => {
         status: 'error',
         data: `Modem IMEI ${flightPoint.imei} not in allowed list, datapoint rejected`
       });
+      console.log(`Rejected point: bad imei`);
       return;
     }
 
