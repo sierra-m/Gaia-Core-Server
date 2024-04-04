@@ -101,7 +101,7 @@ router.post('/', async (req, res) => {
         status: 'error',
         data: `Modem IMEI ${flightPoint.imei} not in allowed list, datapoint rejected`
       });
-      console.log(`Rejected point: bad imei`);
+      console.log(`Rejected point: bad imei: ${flightPoint.imei}`);
       return;
     }
 

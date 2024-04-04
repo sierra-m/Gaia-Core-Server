@@ -36,7 +36,7 @@ class FlightPoint {
     this.vertical_velocity = packet.vertical_velocity;
     this.ground_speed = packet.ground_speed;
     this.satellites = packet.satellites;
-    this.imei = packet.imei;
+    this.imei = parseInt(packet.imei);
     this.input_pins = packet.input_pins;
     this.output_pins = packet.output_pins;
   }
