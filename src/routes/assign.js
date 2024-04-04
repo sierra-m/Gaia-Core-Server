@@ -91,7 +91,7 @@ router.post('/', async (req, res) => {
         status: 'error',
         data: `Flight point fields are incorrectly formatted: ${bad_fields}`
       });
-      console.log(`Rejected point: bad fields`);
+      console.log(`Rejected point: bad fields: ${bad_fields}`);
       return;
     }
 
