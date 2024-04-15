@@ -40,11 +40,21 @@ pg.types.setTypeParser(1114, str => moment.utc(str).format());
  */
 const query = async (command, values = []) => {
   let client = await pgPool.connect();
-  let result = await client.query({
-    text: command,
-    values: values
-  });
-  await client.release();
+  let result;
+
+  try {
+    await client.query('BEGIN');
+    result = await client.query({
+      text: command,
+      values: values
+    });
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    await client.release();
+  }
   return result.rows;
 };
 

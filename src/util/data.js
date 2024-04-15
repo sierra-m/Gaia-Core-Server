@@ -36,9 +36,23 @@ class FlightPoint {
     this.vertical_velocity = packet.vertical_velocity;
     this.ground_speed = packet.ground_speed;
     this.satellites = packet.satellites;
-    this.imei = packet.imei;
+    this.imei = parseInt(packet.imei);
     this.input_pins = packet.input_pins;
     this.output_pins = packet.output_pins;
+  }
+
+  checkInvalidFields () {
+    const bad_fields = [];
+    if (typeof this.latitude !== 'number') bad_fields.push('latitude');
+    if (typeof this.longitude !== 'number') bad_fields.push('longitude');
+    if (typeof this.altitude !== 'number') bad_fields.push('altitude');
+    if (typeof this.vertical_velocity !== 'number') bad_fields.push('vertical_velocity');
+    if (typeof this.ground_speed !== 'number') bad_fields.push('ground_speed');
+    if (typeof this.satellites !== 'number') bad_fields.push('satellites');
+    if (typeof this.imei !== 'number') bad_fields.push('imei');
+    if (typeof this.input_pins !== 'number') bad_fields.push('input_pins');
+    if (typeof this.output_pins !== 'number') bad_fields.push('output_pins');
+    return bad_fields;
   }
 }
 

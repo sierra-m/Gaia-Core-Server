@@ -26,21 +26,19 @@ import express from 'express'
 import format from 'string-format'
 import {query} from '../util/pg'
 import moment from 'moment'
+import * as config from '../config'
+import {getFlightByUID} from '../util/uid'
 
 
 const router = express.Router();
+router.modemList = undefined;  // type: ModemList
 
 format.extend(String.prototype, {});
 
-router.get('/imeis', async (req, res, next) => {
+router.get('/modems', async (req, res, next) => {
     try {
-        const result = await query(
-            'SELECT DISTINCT imei FROM public."flight-registry"',
-            []
-        );
-
-        const imeis = result.map(x => x.imei);
-        await res.json(imeis);
+        const modems = router.modemList.getRedactedSet();
+        await res.json(modems);
     } catch (e) {
         console.log(e);
         next(e);
@@ -49,17 +47,20 @@ router.get('/imeis', async (req, res, next) => {
 
 router.get('/flights', async (req, res, next) => {
     try {
-        if (req.query.imei !== null && typeof req.query.imei === 'string') {
+        if ('modem_name' in req.query && req.query.modem_name !== null && typeof req.query.modem_name === 'string') {
+            const modem = router.modemList.getByName(req.query.modem_name);
+
+            if (!modem) {
+                await res.status(404).json({err: `Invalid modem name '${req.query.modem_name}'`});
+                return;
+            }
+
             let result = await query(
                 'SELECT * FROM public."flight-registry" WHERE imei=$1',
-                [req.query.imei]
+                [modem.imei]
             );
 
-            /*
-            * Mapping turns
-            *   `[{start_date: "2018-08-08T06:00:00.000Z
-            */
-            let flights = result.map(x => x.start_date);
+            let flights = result.map(x => ({date: x.start_date, uid: x.uid}));
             res.json(flights);
         } else {
             res.sendStatus(400);
@@ -82,12 +83,17 @@ router.get('/active', async (req, res, next) => {
             //console.log(`Active flight tuples: ${result.length}`);
 
             // Order uids into '1, 2, 3' string format
-            const point_identifiers = result.map(point => `(${point.uid}, '${point.datetime}')`).join(', ');
+            const point_identifiers = result.map(point => `('${point.uid}', '${point.datetime}')`).join(', ');
 
             // Search for partial points from the list of uids
             // NOTE: This endpoint takes no user input, so direct query substitution is permitted
             result = await query(`SELECT uid, datetime, latitude, longitude, altitude FROM public."flights" WHERE (uid, datetime) in (${point_identifiers}) ORDER BY datetime DESC`);
             //console.log(`Full active flights: ${result.length}`);
+            for (let partial of result) {
+                const {imei, start_date} = await getFlightByUID(partial.uid);
+                partial.modem = router.modemList.getRedacted(imei);
+                partial.start_date = start_date;
+            }
             await res.json({
                 status: 'active',
                 points: result

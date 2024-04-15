@@ -46,7 +46,7 @@ export default class ElevationAPI {
   async request (latitude, longitude) {
     // Check for coords in cache
     for (let packet of this.cache) {
-      if (packet.coord === [latitude, longitude]) {
+      if (packet.coord.lat === latitude && packet.coord.lng === longitude) {
         return packet.elv;
       }
     }
@@ -57,7 +57,7 @@ export default class ElevationAPI {
     const data = await res.json();
     if (data.results.length > 0) {
       const newPacket = {
-        coord: [latitude, longitude],
+        coord: {lat: latitude, lng: longitude},
         elv: data.results[0].elevation
       };
       this.cache.push(newPacket);

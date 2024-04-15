@@ -30,10 +30,11 @@ import { encodeUID, extractIMEI, extractDate } from "../snowflake"
 import Stats from '../stats'
 import json2csv from 'json2csv'
 import KMLEncoder from '../util/kml'
+import * as config from '../config'
+import {standardizeUID, getFlightByUID, getUIDByFlight} from '../util/uid';
 
 const router = express.Router();
-
-const MIN_SATELLITES = 6;
+router.modemList = undefined;
 
 format.extend(String.prototype, {});
 
@@ -54,7 +55,12 @@ const exists = (thing) => thing !== null;
  *      data: [
  *        [1000, 52, ...],
  *        [1001, 53, ...]
- *      ]
+ *      ],
+ *      modem: {
+ *        partialImei: '04940',
+ *        org: 'Some-Uni',
+ *        name: 'MDM001'
+ *      }
  *    }
  *
  * The `datetime` property is also converted to a unix integer
@@ -89,7 +95,7 @@ const reformatData = async (data) => {
 
   // Unzip keys from values
   output.fields = Object.keys(data[0]);
-  output.data = await data.map(point => Object.values(point));
+  output.data = data.map(point => Object.values(point));
 
   return output;
 };
@@ -108,7 +114,7 @@ const jsvFormatter = async (data) => {
 };
 
 const csvFormatter = async (data) => {
-  const fields = ['uid', 'datetime', 'latitude', 'longitude', 'altitude', 'vertical_velocity', 'ground_speed', 'satellites'];
+  const fields = ['uid', 'datetime', 'latitude', 'longitude', 'altitude', 'vertical_velocity', 'ground_speed', 'satellites', 'input_pins', 'output_pins'];
   const opts = { fields };
 
   return await json2csv.parseAsync(data, opts);
@@ -117,30 +123,56 @@ const csvFormatter = async (data) => {
 router.get('/', async (req, res, next) => {
   try {
     let uid = null;
+    let modem;
     // For filenames
-    let imei, date;
+    let modem_name, date;
     if (req.query.uid) {
-      uid = req.query.uid;
+      uid = standardizeUID(req.query.uid);
+      if (!uid) {
+        await res.status(400).json({err: `UID improperly formatted`});
+        return;
+      }
+      const flight = await getFlightByUID(uid);
+      if (!flight) {
+        await res.status(404).json({err: `No flight found for UID ${uid}`});
+        return;
+      }
+      modem = router.modemList.get(flight.imei);
 
-      imei = extractIMEI(uid);
-      date = extractDate(uid).format('YYYY-MM-DD');
-    } else if (req.query.imei && req.query.date) {
-      let start_date = moment.utc(req.query.date, 'YYYY-MM-DD');
-      uid = encodeUID(start_date, req.query.imei);
+      modem_name = modem.name;
+      date = flight.start_date.format('YYYY-MM-DD');
+    } else if (req.query.modem_name && req.query.date) {
+      // Validate params
+      if (req.query.modem_name.length > 20 || !req.query.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        await res.status(400).json({err: `Modem name too long or date not in form YYYY-MM-DD`});
+        return;
+      }
+      // Pull modem info from modem name
+      modem = router.modemList.getByName(req.query.modem_name);
+      if (!modem) {
+        await res.status(404).json({err: `No modem found for name '${req.query.modem_name}'`})
+        return;
+      }
+      // Find corresponding uid
+      uid = await getUIDByFlight(modem.imei, moment.utc(req.query.date, 'YYYY-MM-DD'));
+      if (!uid) {
+        await res.status(404).json({err: `No uid found for combo ('${req.query.modem_name}', ${req.query.date})`})
+        return;
+      }
 
-      imei = req.query.imei;
+      modem_name = modem.name;
       date = req.query.date;
     }
     let result = await query(
         'SELECT * FROM public."flights" WHERE uid=$1 AND satellites>=$2 ORDER BY datetime ASC',
-        [uid, MIN_SATELLITES]
+        [uid, config.MIN_SATELLITES]
     );
 
     if (req.query.format === 'csv') {
       const csv = await csvFormatter(result);
 
       res.type('csv');
-      res.setHeader('Content-Disposition', `attachment; filename=flight-${imei}-${date}.csv`);
+      res.setHeader('Content-Disposition', `attachment; filename=flight-${modem_name}-${date}.csv`);
       res.setHeader('Content-Transfer-Encoding', 'binary');
       await res.send(csv)
     } else if (req.query.format === 'kml') {
@@ -148,11 +180,13 @@ router.get('/', async (req, res, next) => {
       const kml = await KMLEncoder.generate(result, stats.max_altitude);
 
       res.setHeader('Content-Type', `application/kml`);
-      res.setHeader('Content-Disposition', `attachment; filename=flight-${imei}-${date}.kml`);
+      res.setHeader('Content-Disposition', `attachment; filename=flight-${modem_name}-${date}.kml`);
       res.setHeader('Content-Transfer-Encoding', 'binary');
       await res.send(kml);
     } else {
       const jsv = await jsvFormatter(result);
+      // Attach modem info for clarity
+      jsv.modem = router.modemList.getRedacted(modem.imei);
       await res.json(jsv);
     }
   } catch (e) {

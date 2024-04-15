@@ -28,6 +28,7 @@ import {query} from '../util/pg'
 import {extractIMEI} from '../snowflake'
 import moment from 'moment'
 import ElevationAPI from '../util/elevation'
+import {standardizeUID} from '../util/uid';
 
 const router = express.Router();
 
@@ -52,7 +53,7 @@ const elevationAPI = new ElevationAPI();
  * Request
  * -------
  * POST :: JSON {
- *   "uid": {{ number }},
+ *   "uid": {{ string }},  // UUIDv4
  *   "datetime": {{ number }}  // Unix
  * }
  *
@@ -61,56 +62,59 @@ const elevationAPI = new ElevationAPI();
  * JSON {
  *   "update": {{ bool }},  // indicates success
  *   "result": {{ list[FlightPoint] }},
- *   "pin_states": {{ PinState }},
  *   "ground_elevation": {{ number }}
  * }
  */
 router.post('/', async (req, res, next) => {
   try {
     if ('uid' in req.body && 'datetime' in req.body) {
-      let uid = req.body.uid;
+      let uid = standardizeUID(req.body.uid);
+      if (!uid) {
+        await res.status(400).json({err: `UID improperly formatted`});
+        return;
+      }
+      if (!Number.isInteger(req.body.datetime)) {
+        await res.status(400).json({err: `Datetime must be in UNIX format`});
+        return;
+      }
       // Convert Unix to String
       let lastTime = moment.utc(req.body.datetime, 'X').format('YYYY-MM-DD HH:mm:ss');
 
       let result = await query(
           `SELECT * FROM public."flights" WHERE uid=$1 AND datetime>$2`,
           [uid, lastTime]
-          );
-      //console.log(`uid: ${uid} time: ${lastTime} result: ${result}`);
+      );
 
       // Convert timestamps from String to Unix
       for (let row of result) {
         row.datetime = moment.utc(row.datetime, 'YYYY-MM-DD HH:mm:ss').unix();
       }
 
-      // Get current pin states, if any
-      let pins = req.pinStates.get(extractIMEI(uid));
-
       // Create partial return packet
       let content = {
         update: result.length > 0,
-        result: result,
-        pin_states: pins
+        result: result
       };
 
-      //console.log(`Pin states: ${JSON.stringify(req.pinStates)}`);
       try {
         if (result.length > 0) {
           const point = result[result.length - 1];
-          if (point.altitude < 3000 && point.vertical_velocity < 0) {
-            content.ground_elevation = await elevationAPI.request(point.latitude, point.longitude);
-          }
+          // TODO: enable when website is stable
+          // if (point.altitude < 3000 && point.vertical_velocity < 0) {
+          //   content.ground_elevation = await elevationAPI.request(point.latitude, point.longitude);
+          // }
         }
       } catch (e) {
-        console.log(`Update endpoint error: ${e}`)
+        console.log(`Update endpoint error: ${e}`);
       }
 
-      await res.json(content)
+      await res.json(content);
     } else {
-      res.sendStatus(400)
+      await res.status(400).json({err: "Bad request"});
     }
   } catch (e) {
     console.log(e);
+    next(e);
   }
 });
 

@@ -28,10 +28,9 @@
  * Module dependencies.
  */
 
-import app from '../app';
+import buildApp from '../app';
 import debugLib from 'debug';
-import https from 'https'
-import fs from 'fs'
+import http from 'http';
 
 const debug = debugLib('react-backend:server');
 
@@ -39,87 +38,88 @@ const debug = debugLib('react-backend:server');
  * Get port from environment and store in Express.
  */
 
-const port = normalizePort(process.env.PORT || '80');
-const host = process.env.HOST || '0.0.0.0';
-app.set('port', port);
+async function main () {
+  const app =  await buildApp();
 
-// Certificate options
-const options = {
-  key: fs.readFileSync('./src/ssl/borealis_rci_montana_edu.key'),
-  cert: fs.readFileSync('./src/ssl/borealis_rci_montana_edu.cer'),
-};
+  const port = normalizePort(process.env.PORT || '80');
+  const host = process.env.HOST || '0.0.0.0';
+  app.set('port', port);
 
-/**
- * Create HTTPS server.
- */
+  /**
+   * Create HTTP server.
+   */
 
-const server = https.createServer(options, app);
-//var server = http.createServer(app);
+  const server = http.createServer(app);
 
-/**
- * Listen on provided port, on all network interfaces.
- */
+  /**
+   * Listen on provided port, on all network interfaces.
+   */
 
-server.listen(port, host);
-server.on('error', onError);
-server.on('listening', onListening);
+  server.listen(port, host);
+  server.on('error', onError);
+  server.on('listening', onListening);
 
-/**
- * Normalize a port into a number, string, or false.
- */
+  /**
+   * Normalize a port into a number, string, or false.
+   */
 
-function normalizePort(val) {
-  var port = parseInt(val, 10);
+  function normalizePort(val) {
+    var port = parseInt(val, 10);
 
-  if (isNaN(port)) {
-    // named pipe
-    return val;
+    if (isNaN(port)) {
+      // named pipe
+      return val;
+    }
+
+    if (port >= 0) {
+      // port number
+      return port;
+    }
+
+    return false;
   }
 
-  if (port >= 0) {
-    // port number
-    return port;
-  }
+  /**
+   * Event listener for HTTP server "error" event.
+   */
 
-  return false;
-}
-
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
-
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
+  function onError(error) {
+    if (error.syscall !== 'listen') {
       throw error;
+    }
+
+    var bind = typeof port === 'string'
+        ? 'Pipe ' + port
+        : 'Port ' + port;
+
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+      case 'EACCES':
+        console.error(bind + ' requires elevated privileges');
+        process.exit(1);
+        break;
+      case 'EADDRINUSE':
+        console.error(bind + ' is already in use');
+        process.exit(1);
+        break;
+      default:
+        throw error;
+    }
   }
+
+  /**
+   * Event listener for HTTP server "listening" event.
+   */
+
+  function onListening() {
+    var addr = server.address();
+    var bind = typeof addr === 'string'
+        ? 'pipe ' + addr
+        : 'port ' + addr.port;
+    debug('Listening on ' + bind);
+  }
+
 }
 
-/**
- * Event listener for HTTP server "listening" event.
- */
+main();
 
-function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  debug('Listening on ' + bind);
-}
