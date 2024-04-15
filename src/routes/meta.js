@@ -47,14 +47,8 @@ router.get('/modems', async (req, res, next) => {
 
 router.get('/flights', async (req, res, next) => {
     try {
-        if (('modem_name' in req.query && req.query.modem_name !== null && typeof req.query.modem_name === 'string') ||
-             ('imei' in req.query && req.query.imei !== null)) {
-            let modem;
-            if ('imei' in req.query) {
-                modem = router.modemList.get(parseInt(req.query.imei));
-            } else {
-                modem = router.modemList.getByName(req.query.modem_name);
-            }
+        if ('modem_name' in req.query && req.query.modem_name !== null && typeof req.query.modem_name === 'string') {
+            const modem = router.modemList.getByName(req.query.modem_name);
 
             if (!modem) {
                 await res.status(404).json({err: `Invalid modem name '${req.query.modem_name}'`});
