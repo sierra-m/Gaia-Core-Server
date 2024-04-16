@@ -71,6 +71,88 @@ router.get('/flights', async (req, res, next) => {
     }
 });
 
+router.get('/search', async (req, res, next) => {
+    try {
+        const conditions = [];
+        const has_modem_name = 'modem_name' in req.query && req.query.modem_name !== null;
+        // Only search by org if modem name not provided
+        const has_org = 'org' in req.query && req.query.org !== null && !has_modem_name;
+        const has_date = 'date' in req.query && req.query.date !== null;
+        const has_end_date = 'end_date' in req.query && req.query.end_date !== null;
+        if (has_modem_name) {
+            const modem = router.modemList.getByName(req.query.modem_name);
+
+            if (!modem) {
+                await res.status(404).json({err: `Invalid modem name '${req.query.modem_name}'`});
+                return;
+            }
+            conditions.push({
+                stmt: `imei = {param}`,
+                value: modem.imei
+            });
+        }
+        if (has_org) {
+            const modems = router.modemList.getByOrg(req.query.org);
+            if (modems.length === 0) {
+                await res.status(404).json({err: `No modems found for org '${req.query.org}'`});
+                return;
+            }
+            conditions.push({
+                stmt: `imei = ANY({param}::int[])`,
+                value: modems
+            });
+        }
+        if (has_date) {
+            if (!req.query.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                await res.status(400).json({err: `Date not in form 'YYYY-MM-DD'`});
+                return;
+            }
+            if (has_end_date) {
+                if (!req.query.end_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    await res.status(400).json({err: `End date not in form 'YYYY-MM-DD'`});
+                    return;
+                }
+                conditions.push({
+                    stmt: `start_date >= {param}`,
+                    value: req.query.date
+                });
+                conditions.push({
+                    stmt: `start_date <= {param}`,
+                    value: req.query.end_date
+                });
+            } else {
+                conditions.push({
+                    stmt: `start_date = {param}`,
+                    value: req.query.date
+                });
+            }
+        }
+        if (conditions.length === 0) {
+            await res.status(400).json({err: `Must give at least one condition`});
+            return;
+        }
+        const formatted = conditions.map((value, index) => {
+            const param = `$${index+1}`;
+            return value.stmt.replace('{param}', param);
+        });
+        const condition_set = formatted.join(' AND ');
+        const values =  conditions.map((cond) => (cond.value));
+
+        const result = await query(
+          `SELECT * FROM public."flight-registry" WHERE ${condition_set}`,
+          values
+        );
+
+        await res.status(200).json({
+            found: result.length,
+            results: result
+        });
+    } catch (e) {
+        console.log(e);
+        next(e);
+    }
+});
+
 router.get('/active', async (req, res, next) => {
     try {
         // Construct time delta of 12 hours ago, format for db query
