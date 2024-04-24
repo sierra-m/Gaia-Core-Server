@@ -177,7 +177,7 @@ router.get('/', async (req, res, next) => {
       await res.send(csv)
     } else if (req.query.format === 'kml') {
       const stats = await Stats.build(result);
-      const kml = await KMLEncoder.generate(result, stats.max_altitude);
+      const kml = await KMLEncoder.generate(modem, date, result, stats.max_altitude);
 
       res.setHeader('Content-Type', `application/kml`);
       res.setHeader('Content-Disposition', `attachment; filename=flight-${modem_name}-${date}.kml`);

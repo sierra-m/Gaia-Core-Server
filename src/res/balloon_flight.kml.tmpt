@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Balloon Flight {uid}, IMEI {imei} on {date}</name>
+    <name>Balloon Flight {uid}, Modem Name {modemName} on {date}</name>
     <description>The path of the balloon's flight</description>
     <Style id="AscentStyle">
       <LineStyle>
