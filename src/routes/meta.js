@@ -145,7 +145,8 @@ router.get('/search', async (req, res, next) => {
           values
         );
 
-        console.log(`result[0]: ${result[0]}`);
+        const resultDebug = JSON.stringify(result[0]);
+        console.log(`result[0]: ${resultDebug}`);
 
         const redactedResult = result.map((item) => ({
             uid: item.uid,
