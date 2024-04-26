@@ -87,7 +87,7 @@ router.get('/search', async (req, res, next) => {
                 return;
             }
             conditions.push({
-                stmt: `imei = {param}`,
+                stmt: `{table}.imei = {param}`,
                 value: modem.imei
             });
         }
@@ -98,7 +98,7 @@ router.get('/search', async (req, res, next) => {
                 return;
             }
             conditions.push({
-                stmt: `imei = ANY({param}::int[])`,
+                stmt: `{table}.imei = ANY({param}::int[])`,
                 value: modems
             });
         }
@@ -113,16 +113,16 @@ router.get('/search', async (req, res, next) => {
                     return;
                 }
                 conditions.push({
-                    stmt: `start_date >= {param}`,
+                    stmt: `{table}.start_date >= {param}`,
                     value: req.query.date
                 });
                 conditions.push({
-                    stmt: `start_date <= {param}`,
+                    stmt: `{table}.start_date <= {param}`,
                     value: req.query.end_date
                 });
             } else {
                 conditions.push({
-                    stmt: `start_date = {param}`,
+                    stmt: `{table}.start_date = {param}`,
                     value: req.query.date
                 });
             }
@@ -133,20 +133,31 @@ router.get('/search', async (req, res, next) => {
         }
         const formatted = conditions.map((value, index) => {
             const param = `$${index+1}`;
-            return value.stmt.replace('{param}', param);
+            return value.stmt.replace('{param}', param).replace('{table}', `r`);
         });
         const condition_set = formatted.join(' AND ');
         const values =  conditions.map((cond) => (cond.value));
 
         const result = await query(
-          `SELECT DISTINCT ON (uid) uid, datetime, latitude, longitude, altitude FROM public."flights" WHERE uid IN ` +
-          `(SELECT uid FROM public."flight-registry" WHERE ${condition_set}) ORDER BY uid, datetime ASC`,
+          `SELECT DISTINCT ON (f.uid) f.uid, f.datetime, f.latitude, f.longitude, r.imei ` +
+          `FROM public."flights" f INNER JOIN public."flight-registry" r ON f.uid = r.uid ` +
+          `WHERE ${condition_set} ORDER BY f.uid, f.datetime ASC`,
           values
         );
 
+        const redactedResult = result.map((item) => ({
+            uid: item.uid,
+            modem: router.modemList.getRedacted(item.imei),
+            startPoint: {
+                dt: item.datetime,
+                lat: item.latitude,
+                lng: item.longitude,
+            }
+        }));
+
         await res.status(200).json({
-            found: result.length,
-            results: result
+            found: redactedResult.length,
+            results: redactedResult
         });
     } catch (e) {
         console.log(e);
