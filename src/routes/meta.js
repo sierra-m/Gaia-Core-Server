@@ -139,7 +139,8 @@ router.get('/search', async (req, res, next) => {
         const values =  conditions.map((cond) => (cond.value));
 
         const result = await query(
-          `SELECT * FROM public."flight-registry" WHERE ${condition_set}`,
+          `SELECT DISTINCT ON (uid) uid, datetime, latitude, longitude, altitude FROM public."flights" WHERE uid IN ` +
+          `(SELECT uid FROM public."flight-registry" WHERE ${condition_set}) ORDER BY uid, datetime ASC`,
           values
         );
 
