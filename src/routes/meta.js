@@ -145,6 +145,8 @@ router.get('/search', async (req, res, next) => {
           values
         );
 
+        console.log(`result[0]: ${result[0]}`);
+
         const redactedResult = result.map((item) => ({
             uid: item.uid,
             modem: router.modemList.getRedacted(item.imei),
