@@ -145,12 +145,9 @@ router.get('/search', async (req, res, next) => {
           values
         );
 
-        const resultDebug = JSON.stringify(result[0]);
-        console.log(`result[0]: ${resultDebug}`);
-
         const redactedResult = result.map((item) => ({
             uid: item.uid,
-            modem: router.modemList.getRedacted(item.imei),
+            modem: router.modemList.getRedacted(parseInt(item.imei)),
             startPoint: {
                 dt: item.datetime,
                 lat: item.latitude,
