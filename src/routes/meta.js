@@ -155,6 +155,16 @@ router.get('/search', async (req, res, next) => {
             }
         }));
 
+        redactedResult.sort((a, b) => {
+            if (a.modem.name < b.modem.name) {
+                return -1;
+            }
+            if (a.modem.name > b.modem.name) {
+                return 1;
+            }
+            return 0;
+        });
+
         await res.status(200).json({
             found: redactedResult.length,
             results: redactedResult
