@@ -133,6 +133,10 @@ export default class ModemList {
         }
     }
 
+    getByOrg (org) {
+        return [...this.modems.values()].filter((modem) => (modem.org === org));
+    }
+
     getRedacted (imei) {
         const modem = this.get(imei);
         return {

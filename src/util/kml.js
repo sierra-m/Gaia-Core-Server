@@ -8,11 +8,13 @@ format.extend(String.prototype, {});
 export default class KmlEncoder {
   /**
    * Generates a KML file from flight db query
-   * @param data A database query
+   * @param modem The selected modem
+   * @param date The selected date
+   * @param data A database query result
    * @param maxAltitude
    * @returns {Promise<String>}
    */
-  static async generate (data, maxAltitude) {
+  static async generate (modem, date, data, maxAltitude) {
     const file = await fs.readFile('./src/res/balloon_flight.kml.tmpt', "utf8");
 
     let ascendingData = '', descendingData = '';
@@ -35,8 +37,8 @@ export default class KmlEncoder {
     let lastPoint = data[data.length - 1];
     const fileData = {
       uid: firstPoint.uid,
-      imei: extractIMEI(firstPoint.uid),
-      date: extractDate(firstPoint.uid).format('YYYY-MM-DD'),
+      modemName: modem.name,
+      date: date,
       ascentCoords: ascendingData,
       descentCoords: descendingData,
 
