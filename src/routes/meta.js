@@ -74,11 +74,11 @@ router.get('/flights', async (req, res, next) => {
 router.get('/search', async (req, res, next) => {
     try {
         const conditions = [];
-        const has_modem_name = 'modem_name' in req.query && req.query.modem_name !== null;
+        const has_modem_name = req.query.modem_name != null;
         // Only search by org if modem name not provided
-        const has_org = 'org' in req.query && req.query.org !== null && !has_modem_name;
-        const has_date = 'date' in req.query && req.query.date !== null;
-        const has_end_date = 'end_date' in req.query && req.query.end_date !== null;
+        const has_org = req.query.org != null && !has_modem_name;
+        const has_date = req.query.date != null;
+        const has_end_date = req.query.end_date != null;
         if (has_modem_name) {
             const modem = router.modemList.getByName(req.query.modem_name);
 
@@ -103,12 +103,12 @@ router.get('/search', async (req, res, next) => {
             });
         }
         if (has_date) {
-            if (!req.query.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            if (!moment(req.query.date, "YYYY-MM-DD", true).isValid()) {
                 await res.status(400).json({err: `Date not in form 'YYYY-MM-DD'`});
                 return;
             }
             if (has_end_date) {
-                if (!req.query.end_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                if (!moment(req.query.end_date, "YYYY-MM-DD", true).isValid()) {
                     await res.status(400).json({err: `End date not in form 'YYYY-MM-DD'`});
                     return;
                 }
